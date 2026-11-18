@@ -1,9 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import "@fontsource/syne/latin-700.css";
-import "@fontsource/syne/latin-800.css";
 import "@fontsource/dm-sans/latin-400.css";
 import "@fontsource/dm-sans/latin-500.css";
-import "@fontsource/dm-sans/latin-700.css";
+import "@fontsource/dm-sans/latin-600.css";
 import "./globals.css";
 import { APP_NAME, VERSION } from "@/lib/config";
 

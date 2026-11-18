@@ -99,7 +99,9 @@ org falls back to manual submissions (recorded per org).
 - A floating **"Share an event"** button on every page opens the one-step submit sheet.
 - Copy is short, warm and direct, in sentence case, e.g. "What's happening in Oakland", "Share an event", "Looks good — submit".
 - **Chosen direction: B · After hours** (2026-11-17). Deep plum ground `#1A0E24`, raised surfaces `#261733` / `#2E1C3D`, text `#F6EEF9`,
-  muted `#BFA9CC`, hot pink `#FF5C8A` (main action), gold `#F5C451` (dates and highlights). Display type **Syne** (700–800), body **DM Sans**.
+  muted `#BFA9CC`, hot pink `#FF5C8A` (main action), gold `#F5C451` (dates and highlights). Revised 2026-11-17 to be cleaner and sleeker:
+  **DM Sans** for everything (headings 600, sentence case), **Syne** only for the wordmark; thin outlined chips and tags; events without a
+  flyer get quiet tonal plum artwork with one small pink or gold accent (no big poster words).
   Big vertical flyer cards (about 4:5), one or two per phone screen, with title, time and distance on a dark scrim at the bottom; a scrolling
   feed that loads more as you go. Tabs Tonight / This weekend / This week, then category chips. Floating pink **Share an event** button.
   Dark is the main theme; a light variant is not planned for the prototype (backlog).

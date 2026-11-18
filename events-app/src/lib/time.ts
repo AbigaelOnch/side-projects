@@ -62,6 +62,9 @@ export function tabRange(tab: string, now: Date, tz: string): [Date, Date] {
     case "month":
       end = midnight(addDays(p, 31));
       break;
+    case "all":
+      end = midnight(addDays(p, 400));
+      break;
     case "week":
     default:
       end = midnight(addDays(p, 8));

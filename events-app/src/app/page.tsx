@@ -29,7 +29,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Fee
   const base = { city: city.slug, near: f.near, tab: f.tab, cats: f.cats, free: f.free, dating: f.dating, singles: f.singles, solo: f.solo, formats: f.formats, ages: f.ages };
   const href = (o: Partial<typeof base>) => `/?${feedQuery({ ...base, ...o })}`;
   const where = f.near ? `within ${f.near.radius} miles` : `in ${city.name}`;
-  const tabLabel = TABS.find((t) => t.id === f.tab)!.label.toLowerCase();
+  const tabLabel = f.tab === "all" ? "" : TABS.find((t) => t.id === f.tab)!.label.toLowerCase();
   const filtered = f.cats.length > 0 || f.free || f.singles || f.solo || f.formats.length > 0 || f.ages.length > 0;
   const shelf = filtered ? [] : featured(f);
 
@@ -76,7 +76,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Fee
               Know about something good? Share it and we&apos;ll add it.
             </p>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              {f.tab !== "month" && <a className="btn" href={href({ tab: "month" })}>See this month</a>}
+              {f.tab !== "all" && <a className="btn" href={href({ tab: "all" })}>See all upcoming</a>}
               {f.near && f.near.radius < 50 && <a className="btn" href={href({ near: { ...f.near, radius: 50 } })}>Look within 50 miles</a>}
               <a className="btn pink" href="/share">Share an event</a>
             </div>

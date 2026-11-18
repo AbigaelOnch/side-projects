@@ -20,6 +20,7 @@ export const TABS = [
   { id: "weekend", label: "This weekend" },
   { id: "week", label: "This week" },
   { id: "month", label: "This month" },
+  { id: "all", label: "All upcoming" },
 ] as const;
 export type TabId = (typeof TABS)[number]["id"];
 export const DEFAULT_TAB: TabId = "week";

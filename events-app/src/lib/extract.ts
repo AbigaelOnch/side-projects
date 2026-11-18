@@ -188,7 +188,7 @@ export function normaliseUrl(raw: string): string {
     const u = new URL(raw.trim());
     u.hash = "";
     for (const k of [...u.searchParams.keys()]) {
-      if (/^(utm_|fbclid|gclid|igsh|igshid|ref|aff|_branch|si$|mc_)/i.test(k)) u.searchParams.delete(k);
+      if (/^(utm_|fbclid|gclid|igsh|igshid|ref|aff|_branch|si$|mc_|dsrp_|keep_tld)/i.test(k)) u.searchParams.delete(k);
     }
     u.hostname = u.hostname.toLowerCase().replace(/^www\./, "");
     if (u.hostname === "luma.com") u.hostname = "lu.ma";
@@ -206,4 +206,13 @@ export function firstUrl(text: string): string | null {
   if (!m) return null;
   const u = m[0].startsWith("http") ? m[0] : `https://${m[0]}`;
   return u.replace(/[).,!?]+$/, "");
+}
+
+/** "1721 Broadway, Oakland, CA 94612" + "Oakland" + "CA" → no repeated city or state. */
+export function joinAddress(street: string | null, locality: string | null, region: string | null): string {
+  const out = [street];
+  const has = (x: string) => new RegExp(`\\b${x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i").test(street ?? "");
+  if (locality && !has(locality)) out.push(locality);
+  if (region && !has(region)) out.push(region);
+  return out.filter(Boolean).join(", ");
 }

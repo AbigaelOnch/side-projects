@@ -150,3 +150,13 @@ describe("flyers and Claude", () => {
     expect(ex.pageText("<p>Hi</p><script>alert(1)</script><b>there</b>")).toBe("Hi\n there");
   });
 });
+
+describe("real-world link details", () => {
+  it("strips Eventbrite's tracking so the same event is recognised", () => {
+    expect(ex.normaliseUrl("https://www.eventbrite.com/e/afro-soca-love-tickets-2004836207064?dsrp_sid=3f2c&dsrp_item_id=2004836207064")).toBe("https://eventbrite.com/e/afro-soca-love-tickets-2004836207064");
+  });
+  it("doesn't repeat the city in an address", () => {
+    expect(ex.joinAddress("1721 Broadway, Oakland, CA 94612", "Oakland", "CA")).toBe("1721 Broadway, Oakland, CA 94612");
+    expect(ex.joinAddress("19 Grand Ave", "Oakland", "CA")).toBe("19 Grand Ave, Oakland, CA");
+  });
+});

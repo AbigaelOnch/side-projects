@@ -6,7 +6,7 @@ import { allJsonLdEvents, eventLinks, guessCategory, normaliseUrl, platformOf, t
 import { safeFetch, FetchRefused, checkUrl } from "./safefetch";
 import { existingBySource, ingest, readLink, SubmitSchema, type ReadResult } from "./submit";
 import { fetchImage } from "./images";
-import { reviewEvent } from "./review";
+import { reviewEvent, reviewWaiting } from "./review";
 import { linkSeries } from "./dedupe";
 import { geocodeEvent } from "./geocode";
 
@@ -137,7 +137,8 @@ export async function checkDue(deps?: Partial<Deps>): Promise<number> {
 const g = globalThis as unknown as { __orgTimer?: ReturnType<typeof setInterval> };
 export function startOrgChecks() {
   if (g.__orgTimer) return;
-  g.__orgTimer = setInterval(() => { void checkDue().catch(() => null); }, 30 * 60e3);
+  g.__orgTimer = setInterval(() => { void checkDue().catch(() => null); void reviewWaiting().catch(() => null); }, 30 * 60e3);
+  setTimeout(() => { void reviewWaiting().catch(() => null); }, 10e3).unref?.();
   g.__orgTimer.unref?.();
   setTimeout(() => { void checkDue().catch(() => null); }, 60e3).unref?.();
 }

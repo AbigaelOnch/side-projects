@@ -64,3 +64,13 @@ export function restore(id: number): boolean {
     WHERE id = ? AND status = 'rejected'`).run(id);
   return r.changes === 1;
 }
+
+/** Events that arrived while AI review wasn't available (no key yet, service down) get their review now. */
+export async function reviewWaiting(limit = 20): Promise<number> {
+  if (!aiReviewOn() || !process.env.ANTHROPIC_API_KEY) return 0;
+  const rows = db().prepare(`SELECT id FROM events WHERE status = 'pending' AND (review_by IS NULL OR review_note LIKE 'AI review wasn''t available%')
+    ORDER BY id LIMIT ?`).all(limit) as { id: number }[];
+  let n = 0;
+  for (const r of rows) { try { await reviewEvent(r.id); n++; } catch { /* next */ } }
+  return n;
+}

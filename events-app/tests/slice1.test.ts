@@ -139,3 +139,12 @@ describe("S-066 safe links", () => {
     expect(ev.isSafeUrl("data:text/html,hi")).toBe(false);
   });
 });
+
+describe("events further out than a month", () => {
+  it("show under All upcoming", () => {
+    const id = add({ title: "New Year Gala", start: t.zonedToUtc(2026, 12, 31, 21, 0, TZ) });
+    expect(titles({ tab: "month" })).not.toContain("New Year Gala");
+    expect(titles({ tab: "all" as never })).toContain("New Year Gala");
+    expect(id).toBeGreaterThan(0);
+  });
+});

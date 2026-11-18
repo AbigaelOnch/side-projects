@@ -67,6 +67,13 @@ h1, h2, h3 { font-family: var(--display); margin: 0; letter-spacing: -0.02em; fo
 .tag.pink { color: var(--pink-soft); }
 .tag.gold { color: var(--gold); }
 
+/* events without a flyer: a shorter card, art as a slim banner, text below */
+.card.noimg { aspect-ratio: auto; max-height: none; background: var(--surface); }
+.card.noimg .art { position: relative; inset: auto; height: 120px; }
+.card.noimg .scrim { position: relative; padding: 16px 18px 18px; background: none; }
+.card.noimg .scrim h2 { font-size: 19px; }
+.feed { align-items: start; }
+
 /* poster art (when an event has no flyer image) */
 .art { position: absolute; inset: 0; overflow: hidden; }
 .art i { position: absolute; border-radius: 50%; display: block; }

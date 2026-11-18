@@ -123,6 +123,9 @@ const MIGRATIONS: string[] = [
   );
   ALTER TABLE events ADD COLUMN org_id INTEGER;
   `,
+  `
+  ALTER TABLE events ADD COLUMN review_v INTEGER;
+  `,
 ];
 
 type Param = string | number | bigint | null | Uint8Array;

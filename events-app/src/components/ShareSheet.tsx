@@ -19,7 +19,7 @@ const FORMATS = [["speed", "Speed dating"], ["mixer", "Singles mixer"], ["activi
 
 type Step = { s: "start" } | { s: "reading"; what: string } | { s: "problem"; message: string; source?: string }
   | { s: "already"; eventId: number; title: string; live?: boolean } | { s: "form" } | { s: "sending" }
-  | { s: "done"; newCity: string | null };
+  | { s: "done"; newCity: string | null; id: number };
 
 export function ShareSheet({ initial }: { initial: string }) {
   const [link, setLink] = useState(initial);
@@ -34,6 +34,21 @@ export function ShareSheet({ initial }: { initial: string }) {
   const [canPaste, setCanPaste] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const started = useRef(false);
+  const [live, setLive] = useState<"waiting" | "live" | "gone">("waiting");
+  const doneId = step.s === "done" ? step.id : 0;
+  // After sharing, watch for the quick check to finish so the person can see their event straight away.
+  useEffect(() => {
+    if (!doneId) return;
+    let tries = 0;
+    const t = setInterval(async () => {
+      tries++;
+      try {
+        const j = await (await fetch(`/api/submit/status?id=${doneId}`)).json();
+        if (j.status !== "waiting" || tries >= 20) { setLive(j.status); clearInterval(t); }
+      } catch { if (tries >= 20) clearInterval(t); }
+    }, 2000);
+    return () => clearInterval(t);
+  }, [doneId]);
 
   useEffect(() => { setCanPaste(typeof navigator !== "undefined" && !!navigator.clipboard?.readText); }, []);
   useEffect(() => {
@@ -93,7 +108,7 @@ export function ShareSheet({ initial }: { initial: string }) {
         body: JSON.stringify({ ...clean(d), image, source, email: email || null, website: hp }),
       });
       const j = await r.json();
-      if (j.status === "queued") setStep({ s: "done", newCity: j.newCity });
+      if (j.status === "queued") { setLive("waiting"); setStep({ s: "done", newCity: j.newCity, id: j.id }); }
       else if (j.status === "already") setStep({ s: "already", eventId: j.eventId, title: j.title, live: j.live });
       else { setNote(j.message); setMissing(j.fields ?? []); setStep({ s: "form" }); }
     } catch {
@@ -115,11 +130,14 @@ export function ShareSheet({ initial }: { initial: string }) {
   );
 
   if (step.s === "done") return (
-    <div className="sheet-body" role="status">
-      <h2>Thanks, it&apos;s in!</h2>
-      <p className="lede">It&apos;ll show up once it&apos;s been checked{step.newCity ? `. We don't cover ${step.newCity} yet, so we'll look at adding it` : ""}.</p>
+    <div className="sheet-body" role="status" aria-live="polite">
+      <h2>{live === "live" ? "It's live!" : "Thanks, it's in!"}</h2>
+      <p className="lede">{live === "live"
+        ? "Your event passed the check and is on Afro Social now."
+        : `It'll show up once it's been checked${step.newCity ? `. We don't cover ${step.newCity} yet, so we'll look at adding it` : ", usually within a minute. Some events wait for a person to look"}.`}</p>
       <div className="stack">
-        <button type="button" className="btn pink wide" onClick={reset}>Share another event</button>
+        {live === "live" && <a className="btn pink wide" href={`/e/${step.id}`}>See your event</a>}
+        <button type="button" className={`btn wide${live === "live" ? "" : " pink"}`} onClick={reset}>Share another event</button>
         <a className="btn wide" href="/">Back to events</a>
       </div>
     </div>

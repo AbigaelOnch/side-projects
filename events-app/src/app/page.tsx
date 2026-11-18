@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 import { APP_NAME, TABS } from "@/lib/config";
 import { listCities } from "@/lib/events";
-import { featured, feedPage, feedQuery, type FeedParams } from "@/lib/feed";
+import { featured, feedPage, feedQuery, justAdded, type FeedParams } from "@/lib/feed";
+import { Poster } from "@/components/Poster";
 import { Feed } from "@/components/Feed";
 import { FilterSheet } from "@/components/FilterSheet";
 import { PinIcon, PlusIcon } from "@/components/Icons";
@@ -32,6 +33,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<Fee
   const tabLabel = f.tab === "all" ? "" : TABS.find((t) => t.id === f.tab)!.label.toLowerCase();
   const filtered = f.cats.length > 0 || f.free || f.singles || f.solo || f.formats.length > 0 || f.ages.length > 0;
   const shelf = filtered ? [] : featured(f);
+  const fresh = filtered ? [] : justAdded(f);
 
   return (
     <>
@@ -42,6 +44,21 @@ export default async function Home({ searchParams }: { searchParams: Promise<Fee
             <PinIcon c="currentColor" /> {f.near ? "Near you" : city.name}
           </a>
         </header>
+
+        {fresh.length > 0 && (
+          <section className="shelf" aria-label="Just added">
+            <h2>Just added</h2>
+            <div className="shelf-row">
+              {fresh.map((e) => (
+                <a key={e.id} href={`/e/${e.id}`} className="pick-card">
+                  {e.image_path ? <img src={`/flyers/${e.image_path}`} alt="" /> : <span className="pick-art"><Poster id={e.id} /></span>}
+                  <b>{e.title}</b>
+                  <span>{e.day_label}{e.day_sub && e.day_label !== "Today" && e.day_label !== "Tomorrow" ? `, ${e.day_sub}` : ""} · {e.time}</span>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
 
         {shelf.length > 0 && (
           <section className="shelf" aria-label="Coming up">

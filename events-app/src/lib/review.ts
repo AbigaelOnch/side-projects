@@ -8,6 +8,9 @@ import { priceLabel } from "./events";
 import { fmtLongDate, fmtTime } from "./time";
 import { flaggedWith, linkSeries } from "./dedupe";
 
+/** Bump when the review instructions change, so events the AI held under older instructions get a fresh look. */
+export const REVIEW_VERSION = 2;
+
 export const aiReviewOn = () => (process.env.AI_REVIEW ?? "on").toLowerCase() !== "off";
 
 type Row = {
@@ -17,7 +20,7 @@ type Row = {
 };
 
 function note(id: number, by: "ai", text: string) {
-  db().prepare("UPDATE events SET review_by = ?, review_note = ?, reviewed_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?").run(by, text.slice(0, 300), id);
+  db().prepare("UPDATE events SET review_by = ?, review_note = ?, review_v = ?, reviewed_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ?").run(by, text.slice(0, 300), REVIEW_VERSION, id);
 }
 
 export async function reviewEvent(id: number): Promise<ReviewDecision["decision"] | "skipped"> {
@@ -68,9 +71,15 @@ export function restore(id: number): boolean {
 /** Events that arrived while AI review wasn't available (no key yet, service down) get their review now. */
 export async function reviewWaiting(limit = 20): Promise<number> {
   if (!aiReviewOn() || !process.env.ANTHROPIC_API_KEY) return 0;
-  const rows = db().prepare(`SELECT id FROM events WHERE status = 'pending' AND (review_by IS NULL OR review_note LIKE 'AI review wasn''t available%')
-    ORDER BY id LIMIT ?`).all(limit) as { id: number }[];
+  const rows = db().prepare(`SELECT id FROM events WHERE status = 'pending' AND (review_by IS NULL OR review_note LIKE 'AI review wasn''t available%'
+      OR (review_by = 'ai' AND COALESCE(review_v, 1) < ?)) ORDER BY id LIMIT ?`).all(REVIEW_VERSION, limit) as { id: number }[];
   let n = 0;
   for (const r of rows) { try { await reviewEvent(r.id); n++; } catch { /* next */ } }
   return n;
+}
+
+/** For the "Thanks" screen: has this shared event gone live yet? */
+export function liveStatus(id: number): "live" | "waiting" | "gone" {
+  const r = db().prepare("SELECT status FROM events WHERE id = ?").get(id) as { status: string } | undefined;
+  return r?.status === "approved" ? "live" : r?.status === "pending" ? "waiting" : "gone";
 }

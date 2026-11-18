@@ -1,6 +1,7 @@
 import { DEFAULT_TAB, TABS, type TabId } from "./config";
 import { cityBySlug, listCities, listEvents, parseCats, priceLabel, type City, type EventRow } from "./events";
 import { milesBetween, parseNear, parseRadius } from "./geo";
+import { db } from "./db";
 import type { CardData } from "@/components/EventCard";
 import { dayInfo, fmtTime } from "./time";
 
@@ -71,4 +72,16 @@ export function feedPage(sp: FeedParams, cookieCity?: string, cookieDating?: str
   if (!f.city) return { ...f, events: [] as CardData[], next: null as string | null };
   const r = listEvents({ city: f.city, near: f.near, tab: f.tab, cats: f.cats, free: f.free, dating: f.dating, singles: f.singles, solo: f.solo, formats: f.formats, ages: f.ages, cursor: sp.cursor });
   return { ...f, events: r.events.map(toCard), next: r.next };
+}
+
+/** Events added in the last week, newest first, so people can see what's new (and find what they just shared). */
+export function justAdded(f: ReturnType<typeof readFeed>): CardData[] {
+  if (!f.city) return [];
+  const rows = db().prepare(`SELECT e.*, s.rule_text AS series_rule FROM events e LEFT JOIN series s ON s.id = e.series_id
+    WHERE e.status = 'approved' AND e.sample = 0 AND e.approved_at > ? AND COALESCE(e.end_utc, e.start_utc) > ? ${f.dating ? "" : "AND e.category <> 'dating'"}
+    ORDER BY e.approved_at DESC LIMIT 40`).all(new Date(Date.now() - 7 * 86400e3).toISOString(), new Date().toISOString()) as EventRow[];
+  const near = f.near;
+  return rows.filter((e) => near
+    ? e.lat != null && e.lng != null && milesBetween(near, { lat: e.lat, lng: e.lng }) <= near.radius
+    : e.city_id === f.city!.id).slice(0, 8).map(toCard);
 }

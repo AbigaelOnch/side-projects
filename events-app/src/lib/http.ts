@@ -12,3 +12,10 @@ export function clientIp(req: NextRequest): string {
 }
 
 export const forbidden = () => NextResponse.json({ error: "Not allowed" }, { status: 403 });
+
+import { isAdmin } from "./admin";
+export const ADMIN_COOKIE = "afro_admin";
+export function adminOk(req: NextRequest): boolean {
+  return sameOrigin(req) && isAdmin(req.cookies.get(ADMIN_COOKIE)?.value);
+}
+export const unauthorized = () => NextResponse.json({ error: "Sign in as admin first." }, { status: 401 });

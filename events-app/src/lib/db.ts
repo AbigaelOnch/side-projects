@@ -73,6 +73,20 @@ const MIGRATIONS: string[] = [
   CREATE TABLE rate_hits (key TEXT NOT NULL, at INTEGER NOT NULL);
   CREATE INDEX rate_hits_key ON rate_hits(key, at);
   `,
+  `
+  CREATE TABLE admin_sessions (token_hash TEXT PRIMARY KEY, expires INTEGER NOT NULL);
+  CREATE TABLE login_attempts (at INTEGER NOT NULL);
+  CREATE TABLE reports (
+    id INTEGER PRIMARY KEY,
+    event_id INTEGER NOT NULL REFERENCES events(id),
+    reason TEXT,
+    handled INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  );
+  CREATE TABLE geocode_cache (q TEXT PRIMARY KEY, lat REAL, lng REAL, ok INTEGER NOT NULL);
+  ALTER TABLE events ADD COLUMN reject_reason TEXT;
+  ALTER TABLE events ADD COLUMN geo_status TEXT;
+  `,
 ];
 
 function open(): Database.Database {

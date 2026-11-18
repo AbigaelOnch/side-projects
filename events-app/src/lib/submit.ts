@@ -133,7 +133,7 @@ const RATE_LIMIT = 10;
 export function hashIp(ip: string) {
   return crypto.createHash("sha256").update(`afro-social:${ip}`).digest("hex").slice(0, 24);
 }
-function rateLimited(key: string): boolean {
+export function rateLimited(key: string): boolean {
   const hourAgo = Date.now() - 3600_000;
   db().prepare("DELETE FROM rate_hits WHERE at < ?").run(hourAgo);
   const n = (db().prepare("SELECT COUNT(*) n FROM rate_hits WHERE key = ?").get(key) as { n: number }).n;

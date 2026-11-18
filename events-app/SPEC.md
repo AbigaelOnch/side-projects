@@ -97,7 +97,7 @@ org falls back to manual submissions (recorded per org).
 - The link reader fetches only public http(s) URLs. It blocks localhost, private network addresses and file URLs (no server-side request forgery), limits pages to 3 MB, times out after 10 s and follows at most 3 redirects.
 - Uploads: images only (JPEG, PNG, WebP, HEIC), 10 MB max. Files are re-encoded on save and given random names.
 - Submission abuse: per-device and per-IP rate limit (10 per hour), a honeypot field, and spam and duplicate checks. A captcha is backlog, for when the app is public.
-- Admin area: passcode session cookie (http-only, SameSite=Lax), CSRF protection on admin actions, and lockout after 10 wrong passcodes in 15 minutes.
+- Admin area: passcode session cookie (http-only, SameSite=Lax), CSRF protection on admin actions (decided: same-origin check on every admin request plus the SameSite cookie), and lockout after 10 wrong passcodes in 15 minutes.
 - Location privacy: the visitor's position stays in their browser. The page sends only coordinates rounded to about 1 km to fetch nearby events. They are never stored, logged or sent to Claude or any third party, and the app asks for location only when the visitor taps "Show events near me", never on page load.
 - Data stored: event details, source links, flyer images, optional submitter email (shown only to the admin), and the visitor's city choice (in the browser only). No visitor tracking or analytics in the prototype.
 - Secrets (`ANTHROPIC_API_KEY`, `ADMIN_PASSCODE`) live only in `.env.local`, which is git-ignored.
@@ -249,6 +249,7 @@ Format: Given / When / Then. These IDs link to the tests and the validation evid
 
 ## 12. Backlog
 
+- Revisit the colour palette (owner: "there are better colours out there"); plum stays for now. Colours live in one block of CSS variables.
 - "Singles this week" shortcut: one tap for singles-friendly and dating events in the next 7 days near you.
 - Calendar feed subscription: subscribe to any view (e.g. singles near Oakland) in Google or Apple Calendar; new approved events appear automatically, with no login.
 - Instagram hashtag watch (needs a Business account and Meta App Review).

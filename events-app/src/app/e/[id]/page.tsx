@@ -3,6 +3,7 @@ import { getEvent, priceLabel } from "@/lib/events";
 import { categoryLabel } from "@/lib/config";
 import { fmtDay, fmtLongDate, fmtTime, fmtTzName } from "@/lib/time";
 import { Poster } from "@/components/Poster";
+import { Report } from "@/components/Report";
 import { BackIcon, CalIcon, ClockIcon, PersonIcon, PinIcon, PlusIcon, TicketIcon } from "@/components/Icons";
 
 export const dynamic = "force-dynamic";
@@ -62,6 +63,10 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
             </div>
           )}
           {e.description && <div className="desc">{e.description}</div>}
+          {e.category === "dating" && (
+            <div className="note" style={{ marginTop: 16 }}>Meeting new people? Meet in public, tell a friend where you&apos;ll be, and arrange your own ride.</div>
+          )}
+          <div style={{ marginTop: 14 }}><Report eventId={e.id} /></div>
         </div>
       </main>
       <a className="fab" href="/share"><PlusIcon /> Share an event</a>

@@ -219,3 +219,27 @@ dialog.sheet::backdrop { background: rgba(8, 3, 12, 0.62); }
 .field .inbtn { position: absolute; right: 7px; top: 7px; width: 44px; height: 44px; border-radius: 12px; border: 0; background: var(--raised);
   color: var(--soft); display: grid; place-items: center; }
 .pick-card b { min-height: 2.5em; }
+
+/* admin */
+.admin { display: grid; gap: 30px; }
+.admin h2 { font-size: 20px; margin-bottom: 10px; }
+.num { display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 12px; background: var(--raised); font-size: 13px; vertical-align: middle; }
+.qcard { background: var(--surface); border-radius: 18px; padding: 14px; display: grid; gap: 12px; margin-bottom: 12px; }
+.qmain { display: flex; gap: 12px; }
+.qmain img { flex: none; width: 72px; height: 90px; object-fit: cover; border-radius: 10px; }
+.qdesc { color: var(--soft); font-size: 14px; margin: 6px 0 0; white-space: pre-line; }
+.qactions { display: flex; flex-wrap: wrap; gap: 8px; }
+.qactions .btn { min-height: 44px; }
+.btn.danger { background: transparent; border: 1px solid #7A3A44; color: #FFB3BF; }
+.flag { color: var(--gold); font-size: 13.5px; margin-top: 4px; }
+.checklist { margin: 8px 0 0; padding-left: 20px; }
+.checklist li[data-done="true"] { color: var(--muted); text-decoration: line-through; }
+.sheet-body select { width: 100%; font: 16px/1.4 var(--body); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; min-height: 50px; }
+.qedit input, .qedit select, .cityform input, .cityform select { background: var(--ground); }
+.report { margin-top: 6px; }
+/* fieldsets: legend sits above its chips, never over them */
+.sheet-body fieldset, .sheet-in fieldset { display: block; min-width: 0; }
+.sheet-body legend, .sheet-in legend { display: block; float: left; width: 100%; padding: 0 0 8px; }
+.sheet-body fieldset > *:not(legend), .sheet-in fieldset > *:not(legend) { clear: both; }
+.sheet-body fieldset > label { margin-top: 10px; }
+html { scroll-padding-bottom: 150px; scroll-padding-top: 70px; }

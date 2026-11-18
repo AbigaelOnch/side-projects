@@ -13,8 +13,10 @@ export function EventCard({ e, now }: { e: CardData; now?: Date }) {
   const meta = [e.venue_name, e.distance_mi != null ? `${e.distance_mi.toFixed(1)} mi` : null, e.price].filter(Boolean).join(" · ");
   return (
     <a className={`card${e.image_path ? "" : " noimg"}`} href={`/e/${e.id}`}>
-      {e.image_path ? <img className="flyer" src={`/flyers/${e.image_path}`} alt="" /> : <Poster id={e.id} title={e.title} />}
-      <span className="when">{when}</span>
+      <div className="media">
+        {e.image_path ? <img className="flyer" src={`/flyers/${e.image_path}`} alt="" loading="lazy" /> : <Poster id={e.id} title={e.title} />}
+        <span className="when">{when}</span>
+      </div>
       <div className="scrim">
         <h2>{e.title}</h2>
         {meta && <div className="meta">{meta}</div>}

@@ -3,6 +3,23 @@
 //        npm run seed -- --reset (removes sample events first)
 import { db } from "../src/lib/db";
 import { partsIn, zonedToUtc } from "../src/lib/time";
+import fs from "node:fs";
+import path from "node:path";
+
+// Made-up sample flyers, by event title.
+const FLYERS: Record<string, string> = {
+  "Afrobeats & Amapiano Night": "afrobeats.jpg",
+  "Founders & Funders Breakfast": "founders.jpg",
+  "Lake Merritt Saturday Run": "run.jpg",
+  "Singles Paint & Sip": "paint.jpg",
+  "Diaspora Book Club: New Voices": "books.jpg",
+  "First Friday Mixer for Black Professionals": "mixer.jpg",
+};
+function copyFlyers() {
+  const dir = path.join(process.env.DATA_DIR || path.join(process.cwd(), "data"), "uploads");
+  fs.mkdirSync(dir, { recursive: true });
+  for (const f of Object.values(FLYERS)) fs.copyFileSync(path.join(process.cwd(), "sample-flyers", f), path.join(dir, `sample-${f}`));
+}
 
 const CITIES = [
   { slug: "oakland", name: "Oakland", tz: "America/Los_Angeles", lat: 37.8044, lng: -122.2712 },
@@ -43,6 +60,7 @@ function at(daysFromNow: number, hour: number, min: number, tz: string): Date {
 
 function main() {
   const d = db();
+  copyFlyers();
   if (process.argv.includes("--reset")) {
     d.exec("DELETE FROM event_sources WHERE event_id IN (SELECT id FROM events WHERE sample = 1); DELETE FROM events WHERE sample = 1;");
   }
@@ -52,9 +70,9 @@ function main() {
   if (has.n > 0) { console.log(`Sample events already there (${has.n}). Use --reset to recreate.`); return; }
 
   const ins = d.prepare(`INSERT INTO events (title, start_utc, end_utc, tz, venue_name, address, city_id, online, price_min, price_text,
-    organiser, description, category, singles_friendly, go_solo, dating_format, age_range, series_id, status, sample, approved_at)
+    organiser, description, category, singles_friendly, go_solo, dating_format, age_range, series_id, status, sample, approved_at, image_path)
     VALUES (@title, @start, @end, @tz, @venue, @address, @city, @online, @price, @price_text, @organiser, @desc, @category, @singles, @solo,
-    @dating_format, @age_range, @series, 'approved', 1, strftime('%Y-%m-%dT%H:%M:%fZ','now'))`);
+    @dating_format, @age_range, @series, 'approved', 1, strftime('%Y-%m-%dT%H:%M:%fZ','now'), @image)`);
   const src = d.prepare("INSERT INTO event_sources (event_id, url, platform, origin) VALUES (?, ?, ?, 'admin')");
   const platforms = ["eventbrite", "luma", "partiful", "posh", "meetup"];
   let n = 0;
@@ -72,6 +90,7 @@ function main() {
             venue: online ? null : t.venue, address: online ? null : `${t.hood}, ${c.name}`, city: c.id, online: online ? 1 : 0,
             price: t.price, price_text: t.price_text ?? null, organiser: t.organiser, desc: t.desc, category: t.category,
             singles: t.singles ? 1 : 0, solo: t.go_solo ? 1 : 0, dating_format: t.dating_format ?? null, age_range: t.age_range ?? null, series: null,
+            image: FLYERS[t.title] ? `sample-${FLYERS[t.title]}` : null,
           });
           const p = platforms[(ti + rep + ci) % platforms.length];
           src.run(r.lastInsertRowid, `https://example.com/${p}/${c.slug}-${ti}-${rep}`, p);
@@ -90,6 +109,7 @@ function main() {
         title: RUN.title, start: start.toISOString(), end: new Date(start.getTime() + 3600000).toISOString(), tz: oak.tz,
         venue: RUN.venue, address: "Lake Merritt, Oakland", city: oak.id, online: 0, price: 0, price_text: null, organiser: RUN.organiser,
         desc: RUN.desc, category: RUN.category, singles: 1, solo: 1, dating_format: null, age_range: null, series: s.lastInsertRowid,
+        image: `sample-${FLYERS[RUN.title]}`,
       });
       src.run(r.lastInsertRowid, `https://example.com/luma/afro-run-crew-${w}`, "luma");
       n++;

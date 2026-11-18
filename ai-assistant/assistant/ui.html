@@ -1,0 +1,773 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem("theme")==="dark"?"dark":"light";}catch(e){document.documentElement.dataset.theme="light";}</script>
+<title>Assistant</title>
+<style>
+:root{
+  color-scheme:light;
+  /* each part of your life has its own colour, so you always know where you are */
+  --canvas:#ffffff; --sheet:#ffffff; --card:#ffffff; --ink:#17171c; --muted:#6a6a75; --line:#e6e6eb; --hover:rgba(0,0,0,.05);
+  --violet:#17171c; --violet-soft:#f2f2f5; --on-violet:#ffffff; --blue:#2f6fdb;
+  --jade:#0d7a63;   --jade-soft:#d6f2e8;
+  --coral:#d9442f;  --coral-soft:#ffe2db;
+  --gold:#8a5a00;   --gold-soft:#ffefc7;
+  --danger:#b3261e; --ok:#0d7a63;
+  --shadow:0 1px 2px rgba(0,0,0,.04);
+  --font:"Segoe UI Variable Display","Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+}
+html[data-theme=dark]{
+  color-scheme:dark;
+    --canvas:#0e0e11; --sheet:#0e0e11; --card:#17171b; --ink:#f1f1f4; --muted:#9d9da8; --line:#2a2a31; --hover:rgba(255,255,255,.08);
+    --violet:#f1f1f4; --violet-soft:#24242a; --on-violet:#111114; --blue:#7aa7ff;
+    --jade:#58d6b2; --jade-soft:#123a31;
+    --coral:#ff8f78; --coral-soft:#43211b;
+    --gold:#f3c15d; --gold-soft:#3a2d0d;
+    --danger:#ff968d; --ok:#58d6b2;
+    --shadow:none;
+  }
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--canvas);color:var(--ink);font:15px/1.5 var(--font);
+  display:grid;grid-template-columns:224px minmax(0,1fr);gap:0;padding:12px 12px 12px 0}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px;border-radius:10px}
+h1{font-size:34px;line-height:1.1;letter-spacing:-.025em;margin:0 0 6px;font-weight:720}
+h2{font-size:24px;line-height:1.15;letter-spacing:-.02em;margin:0 0 4px;font-weight:700}
+h3{font-size:16px;margin:0 0 4px;font-weight:650}
+p{margin:0 0 .7em}
+.muted{color:var(--muted)}
+.hidden{display:none!important}
+.small{font-size:13px}
+
+/* ---------- sidebar ---------- */
+#rail{display:flex;flex-direction:column;gap:6px;padding:18px 12px 6px 18px;min-height:0;overflow:auto}
+.brand{display:flex;align-items:center;gap:10px;font-weight:720;font-size:18px;letter-spacing:-.01em;padding:2px 8px 14px}
+.brand i{width:26px;height:26px;border-radius:9px 9px 9px 3px;background:var(--violet);display:block}
+#check{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin-bottom:10px;
+  background:var(--violet-soft);color:var(--ink);border:0;border-radius:999px;padding:9px 14px;font-weight:600}
+#check[disabled]{opacity:.55;cursor:default}
+nav{display:flex;flex-direction:column;gap:2px}
+nav .sep{height:10px}
+nav button{display:flex;align-items:center;gap:11px;width:100%;text-align:left;border:0;background:none;
+  padding:9px 12px;border-radius:14px;color:var(--muted);font-weight:560}
+nav button svg{width:19px;height:19px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+nav button:hover{background:var(--hover);color:var(--ink)}
+nav button[aria-current=page]{background:var(--violet-soft);color:var(--ink);font-weight:680}
+nav button[data-view=money][aria-current=page] svg{color:var(--jade)}
+nav button[data-view=health][aria-current=page] svg{color:var(--coral)}
+nav button[data-view=appts][aria-current=page] svg{color:var(--gold)}
+nav button[aria-current=page] svg{color:var(--ink)}
+.count{margin-left:auto;min-width:22px;text-align:center;font-size:12px;font-weight:700;padding:1px 7px;border-radius:999px;
+  background:var(--violet-soft);color:var(--muted)}
+.count.warn{background:var(--coral);color:#fff}
+.count:empty,.count[data-n="0"]{display:none}
+#sources{margin-top:auto;padding:14px 10px 4px;font-size:12.5px;color:var(--muted);display:grid;gap:4px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;background:var(--line)}
+.dot.on{background:var(--jade)}.dot.off{background:var(--coral)}
+#theme,#quit{margin:0;border:0;background:none;color:var(--muted);text-align:left;padding:6px 10px;border-radius:10px;font-size:13px}
+#theme:hover,#quit:hover{color:var(--ink)}
+
+/* ---------- the sheet ---------- */
+main{background:var(--sheet);border-radius:28px;border:1px solid var(--line);min-width:0;min-height:0;
+  overflow:hidden;display:flex;flex-direction:column;height:calc(100vh - 24px)}
+#banner{background:var(--coral-soft);color:var(--danger);padding:11px 32px;font-weight:600}
+.view{display:none;flex:1;min-height:0;overflow:auto}
+.view.on{display:block}
+.col{max-width:1000px;margin:0 auto;padding:34px 32px 60px}
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-bottom:22px}
+.head .muted{max-width:56ch}
+.link{background:none;border:0;padding:0;color:var(--ink);font-weight:640;text-decoration:underline;text-underline-offset:3px}
+
+/* buttons + fields */
+.btn{border:0;border-radius:999px;background:var(--violet);color:var(--on-violet);padding:9px 18px;font-weight:650}
+.btn:hover{filter:brightness(1.08)}
+.btn.quiet{background:var(--violet-soft);color:var(--ink)}
+.btn.warn{background:var(--coral);color:#fff}
+.btn.small{padding:6px 13px;font-size:13.5px}
+.btn[disabled]{opacity:.55;cursor:default}
+input[type=text],input[type=number],input[type=date],input[type=datetime-local],select,textarea{
+  width:100%;border:1.5px solid var(--line);border-radius:12px;background:var(--card);padding:9px 12px}
+input:focus,select:focus,textarea:focus{border-color:var(--ink);outline:none}
+textarea{resize:vertical;min-height:96px}
+label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:10px 0 4px}
+.addrow{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:22px}
+.addrow>*{flex:1 1 150px}.addrow>.btn{flex:0 0 auto}.addrow input[type=text]{flex:3 1 240px}
+
+/* ---------- Today ---------- */
+.hello{margin-bottom:26px}
+.twocol{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:34px;align-items:start}
+.lbl{font-size:15px;margin:0 0 10px;color:var(--muted);font-weight:650}
+@media (max-width:980px){.twocol{grid-template-columns:1fr}}
+.block{margin-top:56px;padding-top:28px;border-top:1px solid var(--line)}
+.block .head h2{font-size:22px}
+.block .head{align-items:center;margin-bottom:0;cursor:pointer}
+.block.open .head{margin-bottom:22px}
+.fold{flex:none;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--card);display:grid;place-items:center}
+.fold svg{width:16px;height:16px;stroke:var(--ink);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s}
+.block.open .fold svg{transform:rotate(180deg)}
+.block:not(.open) .foldbody{display:none}
+.hello p{font-size:17px;color:var(--muted);margin:0}
+.heads{display:grid;gap:10px;margin-bottom:30px}
+.row{display:flex;gap:14px;align-items:flex-start;background:var(--card);border-radius:18px;padding:14px 16px;box-shadow:var(--shadow);border:1px solid var(--line)}
+.row .pip{width:10px;height:10px;border-radius:50%;margin-top:7px;flex:none;background:var(--muted)}
+.row[data-area=budget] .pip{background:var(--jade)}
+.row[data-area=health] .pip{background:var(--coral)}
+.row[data-area=appointments] .pip{background:var(--gold)}
+.row .t{font-weight:650}
+.row .d{color:var(--muted);font-size:14px}
+.row .go{margin-left:auto;align-self:center}
+.row.warn{border-color:var(--coral)}
+.calm{padding:18px 20px;border-radius:18px;background:var(--jade-soft);color:var(--jade);font-weight:600}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(176px,1fr));gap:14px}
+.tile{display:flex;flex-direction:column;gap:10px;text-align:left;border:0;border-radius:24px;padding:20px;min-height:176px;color:var(--ink)}
+.tile h3{font-size:15px;font-weight:700;display:flex;justify-content:space-between}
+.tile .big{font-size:21px;line-height:1.2;letter-spacing:-.015em;font-weight:700}
+.tile .sub{font-size:13.5px;opacity:.78;margin-top:auto}
+.tile.t-inbox{background:var(--violet-soft)}
+.tile.t-money{background:var(--jade-soft)}
+.tile.t-health{background:var(--coral-soft)}
+.tile.t-appts{background:var(--gold-soft)}
+.tile.t-inbox h3{color:var(--muted)}.tile.t-money h3{color:var(--jade)}
+.tile.t-health h3{color:var(--coral)}.tile.t-appts h3{color:var(--gold)}
+.tile:hover{transform:translateY(-2px)}
+.tile{transition:transform .15s}
+.seg{display:flex;height:10px;border-radius:99px;overflow:hidden;background:rgba(0,0,0,.08);gap:2px}
+.seg i{display:block;min-width:4px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12.5px}
+.legend b{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.c-eat{background:var(--coral)}.c-groc{background:var(--jade)}.c-shop{background:var(--blue)}.c-oth{background:#9a97b0}
+.week{display:flex;gap:7px}
+.week span{width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.09);display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--muted)}
+.week span.did{background:var(--coral);color:#fff}
+@media (prefers-reduced-motion:no-preference){
+  .tiles.enter .tile{animation:rise .5s both cubic-bezier(.2,.7,.2,1)}
+  .tiles.enter .tile:nth-child(2){animation-delay:.06s}.tiles.enter .tile:nth-child(3){animation-delay:.12s}
+  .tiles.enter .tile:nth-child(4){animation-delay:.18s}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+}
+
+/* ---------- chat ---------- */
+main{position:relative}
+.view .col{padding-bottom:120px}
+#ask{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);width:min(760px,calc(100% - 36px));z-index:5}
+#ask.hidden{display:none}
+#askOpen{display:flex;align-items:center;gap:9px;margin:0 auto;border:0;border-radius:999px;background:var(--ink);color:var(--canvas);
+  padding:12px 22px;font-weight:650;box-shadow:0 10px 30px -8px rgba(0,0,0,.35)}
+#askOpen svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+#askOpen.ready{outline:3px solid var(--blue)}
+#ask.collapsed #askPanel{display:none}
+#ask:not(.collapsed) #askOpen{display:none}
+#askPanel{background:var(--card);border:1px solid var(--line);border-radius:26px;padding:12px 14px 14px;
+  box-shadow:0 18px 50px -12px rgba(0,0,0,.3)}
+#askBar{display:flex;justify-content:space-between;align-items:center;padding:0 6px 6px}
+#askLog{max-height:38vh;overflow:auto;margin-bottom:8px;padding-top:4px}
+#askChips{margin:0 0 8px}#askChips:empty{display:none}
+#askLog .msg.me,#askLog .msg.bot,#askLog .msg.live,#askLog .msg.err{width:auto;max-width:100%;margin:0 0 10px}
+#askLog .msg.me{margin-left:auto;width:fit-content;max-width:80%}
+#askLog .msg.bot,#askLog .msg.live,#askLog .msg.err{padding:14px 18px}
+.msg{max-width:760px;margin:0 auto 14px;padding:0 32px}
+.msg>div,.msg.me,.msg.bot,.msg.err,.msg.live{border-radius:20px}
+.msg.me{margin-left:auto;margin-right:max(32px,calc((100% - 760px)/2));max-width:min(560px,88%);padding:11px 18px;
+  background:var(--violet);color:var(--on-violet);width:fit-content;margin-left:auto}
+.msg.bot,.msg.live,.msg.err{width:min(760px,calc(100% - 64px));margin:0 auto 14px;padding:16px 20px;background:var(--card);box-shadow:var(--shadow);border:1px solid var(--line)}
+.msg.err{background:var(--coral-soft);color:var(--danger)}
+.msg.bot h3{margin:14px 0 4px}.msg.bot p:last-child{margin:0}
+.msg code{background:var(--violet-soft);padding:1px 6px;border-radius:6px}
+.live ul{margin:6px 0 0;padding-left:18px;color:var(--muted)}
+.pulse{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--violet);margin-right:8px}
+@media (prefers-reduced-motion:no-preference){.pulse{animation:pl 1.1s infinite ease-in-out}@keyframes pl{50%{opacity:.25;transform:scale(.7)}}}
+.steps{font-size:13px;color:var(--muted);margin-bottom:8px}
+.empty{padding:70px 0 20px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:8px 15px;font-weight:600}
+#chatForm{display:flex;gap:10px;align-items:flex-end;background:var(--violet-soft);border-radius:22px;padding:6px 6px 6px 16px}
+#chatInput{border:0;background:none;padding:8px 0;min-height:0;height:38px;resize:none;max-height:140px;overflow:auto}
+#chatInput:focus{outline:none}
+
+/* ---------- approvals, tasks ---------- */
+.ask{background:var(--card);border-radius:22px;padding:20px;margin-bottom:14px;box-shadow:var(--shadow);border:1px solid var(--line);border-left:6px solid var(--gold)}
+.acts{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.past{display:grid;grid-template-columns:auto 1fr auto;gap:8px 14px;align-items:center;font-size:14px}
+.tag{font-size:12px;font-weight:700;padding:2px 10px;border-radius:99px;background:var(--violet-soft);color:var(--ink)}
+.tag.denied,.tag.failed{background:var(--coral-soft);color:var(--danger)}.tag.approved{background:var(--jade-soft);color:var(--jade)}
+.task{display:flex;gap:14px;align-items:flex-start;background:var(--card);border-radius:18px;padding:13px 16px;margin-bottom:8px;box-shadow:var(--shadow);border:1px solid var(--line)}
+.tick{width:24px;height:24px;border-radius:50%;border:2px solid var(--line);background:none;flex:none;margin-top:1px}
+.tick:hover{border-color:var(--violet)}
+.task.done .tick{background:var(--jade);border-color:var(--jade)}
+.task.done .t{text-decoration:line-through;color:var(--muted)}
+.task .t{font-weight:620}.meta{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--muted)}
+.over,.hi{color:var(--danger);font-weight:650}
+
+/* ---------- money / health / appointments ---------- */
+.card{background:var(--card);border-radius:24px;padding:20px 22px;box-shadow:var(--shadow);border:1px solid var(--line);margin-bottom:16px}
+.cat{display:grid;grid-template-columns:minmax(120px,1.2fr) 3fr 120px;gap:6px 16px;align-items:center;padding:9px 0}
+.cat+.cat{border-top:1px solid var(--line)}
+.cat .nm{font-weight:600}.cat .amt{font-size:13px;color:var(--muted)}
+.bar{height:10px;border-radius:99px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:99px;background:var(--jade)}
+.bar.near i{background:var(--gold)}.bar.over i{background:var(--coral)}
+.cat input{padding:6px 10px;border-radius:10px;font-size:14px}
+.steps-list{margin:8px 0 0;padding-left:20px;color:var(--muted)}
+.goal{padding:10px 0}.goal+.goal{border-top:1px solid var(--line)}
+.goal .bar i{background:var(--coral)}
+.pill{display:inline-block;font-size:12px;font-weight:700;padding:2px 10px;border-radius:99px;margin-right:8px}
+.pill.doctor,.pill.dentist{background:var(--jade-soft);color:var(--jade)}.pill.beauty{background:var(--coral-soft);color:var(--coral)}
+.pill.other{background:var(--violet-soft);color:var(--ink)}
+.appt{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+.appt .when{font-weight:650}
+.split{display:grid;grid-template-columns:200px minmax(0,1fr);gap:28px;max-width:1000px;margin:0 auto;padding:34px 32px}
+.list{display:grid;gap:4px;margin-top:10px}
+.list button{text-align:left;border:0;background:none;padding:8px 12px;border-radius:12px;color:var(--muted)}
+.list button[aria-current=true]{background:var(--violet-soft);color:var(--ink);font-weight:650}
+#profileText{min-height:340px}
+
+#toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);background:var(--ink);color:var(--canvas);
+  padding:10px 20px;border-radius:999px;opacity:0;pointer-events:none;transition:.2s;font-weight:600}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+#stopped{display:none;position:fixed;inset:0;background:var(--canvas);place-items:center;text-align:center;padding:30px}
+#stopped.on{display:grid}
+@media (max-width:860px){
+  body{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);padding:8px;gap:8px;height:100vh}
+  #rail{flex-direction:row;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:2px 4px;overflow:visible}
+  .brand{padding:0;font-size:16px}.brand i{width:22px;height:22px}
+  #check{width:auto;margin:0 0 0 auto;padding:7px 14px;order:2}
+  #autoNote,#sources{display:none}
+  #quit,#theme{order:2;margin:0;padding:6px 8px}
+  nav{flex-direction:row;order:3;width:100%;gap:4px}nav .sep{display:none}
+  nav button{padding:6px 12px;width:auto;font-size:13.5px}nav button svg{display:none}
+  main{height:auto;min-height:0;border-radius:20px}
+  .col{padding:20px 16px 36px}
+  h1{font-size:26px}
+  #ask{bottom:10px;width:calc(100% - 20px)}#askLog{max-height:30vh}#askChips{display:none}
+  .cat,.split{grid-template-columns:1fr}
+  .row{flex-wrap:wrap}.row .go{margin-left:auto}
+  .addrow>*{flex:1 1 100%}
+}
+</style>
+</head>
+<body>
+<aside id="rail">
+  <div class="brand"><i></i>Assistant</div>
+  <button id="check" type="button"><span id="checkLabel">Refresh now</span></button>
+  <div id="autoNote" class="small muted" style="padding:0 10px 8px"></div>
+  <nav aria-label="Sections" id="nav"></nav>
+  <div id="sources" aria-label="Connections"></div>
+  <button id="theme" type="button">Dark mode</button>
+  <button id="quit" type="button">Quit assistant</button>
+</aside>
+
+<main>
+  <div id="banner" class="hidden" role="status"></div>
+
+  <section class="view" id="view-today"><div class="col"><div id="todayBody"></div>
+<section class="block" id="view-approvals">
+    <div>
+      <div class="head"><div><h2>Waiting for you</h2>
+        <div class="muted">Nothing is sent or put on your calendar until you approve it. You can edit the text first.</div></div></div>
+      <div id="pending"></div>
+      <h3 style="margin-top:30px">Recently handled</h3>
+      <div id="recent" class="past"></div>
+    </div>
+  </section>
+
+  <section class="block" id="view-tasks">
+    <div>
+      <div class="head"><div><h2>Tasks</h2>
+        <div class="muted">Action items the assistant found, plus anything you add.</div></div>
+        <button class="link" id="toggleDone" type="button">Show completed</button></div>
+      <form class="addrow" id="taskForm">
+        <label class="hidden" for="taskTitle">Task</label>
+        <input type="text" id="taskTitle" placeholder="Add a task" maxlength="200">
+        <label class="hidden" for="taskDue">Due date</label>
+        <input type="date" id="taskDue">
+        <label class="hidden" for="taskPri">Priority</label>
+        <select id="taskPri"><option value="normal">Normal</option><option value="high">High</option><option value="low">Low</option></select>
+        <button class="btn" type="submit">Add task</button>
+      </form>
+      <div id="taskList"></div>
+    </div>
+  </section>
+
+  <section class="block" id="view-money">
+    <div>
+      <div class="head"><div><h2>Money</h2>
+        <div class="muted" id="moneySub">Your spending from Copilot, against limits you set.</div></div></div>
+      <div class="card" id="moneyMix"></div>
+      <div class="card"><h3>By category</h3><div id="cats"></div></div>
+      <div class="card">
+        <h3>Bring in your latest spending</h3>
+        <p class="muted small">In Copilot: Settings, Account, Export your transactions. Then choose the file here. Importing the same file twice is safe.</p>
+        <input type="file" id="csvFile" accept=".csv" class="hidden">
+        <button class="btn" id="csvBtn" type="button">Choose Copilot export</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="view-health">
+    <div>
+      <div class="head"><div><h2>Health</h2>
+        <div class="muted">Workouts, goals and eating habits. Kept on this computer.</div></div></div>
+      <div class="card"><h3>Goals</h3><div id="goals"></div>
+        <form class="addrow" id="goalForm" style="margin:14px 0 0">
+          <label class="hidden" for="gTitle">Goal</label><input type="text" id="gTitle" placeholder="New goal, e.g. Move more" maxlength="100">
+          <label class="hidden" for="gTarget">Target</label><input type="number" id="gTarget" min="1" step="any" placeholder="Target" style="flex:0 1 90px">
+          <label class="hidden" for="gMetric">What to count</label>
+          <select id="gMetric"><option value="workouts">workouts</option><option value="minutes">minutes</option><option value="distance_km">km</option></select>
+          <label class="hidden" for="gPeriod">Per</label>
+          <select id="gPeriod"><option value="week">per week</option><option value="month">per month</option></select>
+          <button class="btn quiet" type="submit">Add goal</button></form></div>
+      <div class="card"><h3>Log a workout</h3>
+        <form class="addrow" id="wForm" style="margin:8px 0 0">
+          <label class="hidden" for="wKind">What</label><input type="text" id="wKind" placeholder="Run, yoga, strength…" maxlength="60">
+          <label class="hidden" for="wMin">Minutes</label><input type="number" id="wMin" min="0" placeholder="Minutes" style="flex:0 1 100px">
+          <label class="hidden" for="wDist">Distance</label><input type="number" id="wDist" min="0" step="any" placeholder="Distance" style="flex:0 1 100px">
+          <label class="hidden" for="wUnit">Unit</label><select id="wUnit" style="flex:0 1 80px"><option value="mi">mi</option><option value="km">km</option></select>
+          <button class="btn" type="submit">Log</button></form>
+        <div id="wList" class="small muted"></div></div>
+      <div class="card"><h3>Meals</h3>
+        <p class="muted small">Optional. A quick note of what you ate helps the assistant tell the difference between a busy week and skipped meals. No calorie counting.</p>
+        <form class="addrow" id="mForm" style="margin:8px 0 0">
+          <label class="hidden" for="mText">Meal</label><input type="text" id="mText" placeholder="Lunch: chicken salad" maxlength="120">
+          <button class="btn" type="submit">Add</button></form>
+        <div id="mList" class="small muted"></div></div>
+      <div class="card"><h3>Bring in Apple Health</h3>
+        <p class="muted small">On your iPhone: Health app, your profile picture, Export All Health Data. Send the zip to this computer and choose it here. Only workouts are read. Large files take a minute.</p>
+        <input type="file" id="healthFile" accept=".zip,.xml" class="hidden">
+        <button class="btn" id="healthBtn" type="button">Choose Health export</button></div>
+    </div>
+  </section>
+
+  <section class="block" id="view-appts">
+    <div>
+      <div class="head"><div><h2>Appointments</h2>
+        <div class="muted">The assistant finds times and gets the details ready. You confirm every booking yourself.</div></div></div>
+      <div id="apptCal"></div>
+      <div id="apptList"></div>
+      <div class="card"><h3>Add an appointment</h3>
+        <form id="apForm">
+          <div class="addrow" style="margin:8px 0 0">
+            <label class="hidden" for="apKind">Kind</label>
+            <select id="apKind"><option value="doctor">Doctor</option><option value="dentist">Dentist</option><option value="beauty">Beauty</option><option value="other">Other</option></select>
+            <label class="hidden" for="apProv">Who</label><input type="text" id="apProv" placeholder="Provider or salon" maxlength="100">
+            <label class="hidden" for="apPurpose">What for</label><input type="text" id="apPurpose" placeholder="What for (keep it brief)" maxlength="200">
+          </div>
+          <div class="addrow" style="margin:0">
+            <label class="hidden" for="apStart">When</label><input type="datetime-local" id="apStart">
+            <label class="hidden" for="apLink">Booking link</label><input type="text" id="apLink" placeholder="Booking page link (https://…), optional">
+            <button class="btn" type="submit">Add</button></div>
+        </form></div>
+    </div>
+  </section>
+
+  </div></section>
+
+  <section class="view" id="view-briefs">
+    <div class="split">
+      <div><h2>Briefs</h2><div class="list" id="briefList"></div></div>
+      <div id="briefBody"></div>
+    </div>
+  </section>
+
+  <section class="view" id="view-profile">
+    <div class="col">
+      <div class="head"><div><h2>About you</h2>
+        <div class="muted">The assistant reads this every time it works. Say who matters, what to ignore, what it may do alone, and how your replies should sound.</div></div></div>
+      <label class="hidden" for="profileText">Profile</label>
+      <textarea id="profileText" spellcheck="true"></textarea>
+      <div class="acts"><button class="btn" id="saveProfile" type="button">Save</button></div>
+    </div>
+  </section>
+  <div id="ask" class="collapsed">
+    <button id="askOpen" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-8l-4 3v-3H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z"/></svg><span id="askOpenLabel">Ask the assistant</span></button>
+    <div id="askPanel" role="region" aria-label="Ask the assistant">
+      <div id="askBar"><strong>Ask the assistant</strong><button class="link small" id="askClose" type="button">Collapse</button></div>
+      <div id="askLog" class="hidden" aria-live="polite"></div>
+      <div id="askChips" class="chips"></div>
+      <form id="chatForm">
+        <label class="hidden" for="chatInput">Ask about this page</label>
+        <textarea id="chatInput" rows="1"></textarea>
+        <button class="btn" id="sendBtn" type="submit">Ask</button>
+      </form>
+    </div>
+  </div>
+</main>
+
+<div id="toast" role="status"></div>
+<div id="stopped"><div><h2>The assistant has stopped</h2>
+  <p class="muted">Double-click Assistant.bat in your assistant folder, or your shortcut to it, to start it again.</p></div></div>
+
+<script>
+const TOKEN="__TOKEN__";
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+let status={}, busy=false, showDone=false, currentView="today", firstToday=true, askJob=null;
+
+const ICONS={
+ today:'<path d="M4 11.5 12 5l8 6.5V19a1 1 0 0 1-1 1h-4v-5H9v5H5a1 1 0 0 1-1-1z"/>',
+ chat:'<path d="M5 6h14a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-8l-4 3v-3H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1z"/>',
+ approvals:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+ tasks:'<rect x="5" y="4" width="14" height="16" rx="3"/><path d="M9 9h6M9 13h4"/>',
+ money:'<circle cx="12" cy="12" r="8"/><path d="M14.5 9.2c-.6-.8-1.5-1.2-2.5-1.2-1.4 0-2.5.8-2.5 2s1.1 1.7 2.5 2 2.5.8 2.5 2-1.1 2-2.5 2c-1 0-1.9-.4-2.5-1.2M12 6.5V8m0 8v1.5"/>',
+ health:'<path d="M12 20s-7-4.4-7-9.6A4 4 0 0 1 12 8a4 4 0 0 1 7 2.4C19 15.6 12 20 12 20z"/>',
+ appts:'<rect x="4" y="5.5" width="16" height="14" rx="3"/><path d="M8 3.5v4M16 3.5v4M4 10h16"/>',
+ briefs:'<path d="M7 4h8l3 3v13H7z"/><path d="M10 11h5M10 15h5"/>',
+ profile:'<circle cx="12" cy="9" r="3.5"/><path d="M5 20c.8-3.5 3.6-5 7-5s6.2 1.5 7 5"/>'};
+const NAV=[["today","Home"],"sep",["briefs","Briefs"],["profile","About you"]];
+$("#nav").innerHTML=NAV.map(n=>n==="sep"?'<div class="sep"></div>':
+  `<button data-view="${n[0]}" type="button"><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[n[0]]}</svg>${n[1]}${n[2]?`<span class="count" id="${n[2]}" data-n="0">0</span>`:""}</button>`).join("");
+
+const LABELS={search_gmail:"Searching Gmail",read_gmail:"Reading an email",draft_gmail_reply:"Writing a draft reply",
+ send_gmail:"Preparing an email",send_gmail_reply:"Preparing a reply",mark_gmail_read:"Marking mail as read",
+ linkedin_updates:"Checking LinkedIn",search_outlook:"Searching Outlook",read_outlook:"Reading an Outlook email",
+ draft_outlook_reply:"Writing a draft reply",send_outlook_reply:"Preparing a reply",mark_outlook_read:"Marking mail as read",
+ add_task:"Adding a task",list_tasks:"Reading your tasks",complete_task:"Completing a task",
+ list_notes:"Looking through notes",read_note:"Reading a note",create_note:"Writing a note",append_to_note:"Adding to a note",
+ recent_imessages:"Reading messages",send_imessage:"Preparing a message",
+ import_transactions:"Importing spending",spending_summary:"Looking at your spending",set_budget_limit:"Setting a budget limit",
+ set_category_group:"Sorting a category",set_alert_setting:"Changing an alert",check_alerts:"Checking your alerts",
+ log_meal:"Noting a meal",set_goal:"Setting a goal",log_workout:"Logging a workout",fitness_summary:"Checking your workouts",
+ import_apple_health:"Importing Apple Health",add_appointment:"Adding an appointment",list_appointments:"Reading your appointments",
+ update_appointment:"Updating an appointment",find_free_times:"Looking for free time",add_calendar_event:"Preparing a calendar event"};
+const ACTION_NAMES={send_gmail:"Send an email",send_gmail_reply:"Send a reply",send_outlook_reply:"Send a reply",
+  send_imessage:"Send a text message",add_calendar_event:"Add to your calendar"};
+const label=t=>LABELS[t]||"Working";
+
+async function api(path,opt={}){
+  let res;
+  try{res=await fetch(path,{method:opt.method||"GET",headers:{"X-Assistant-Token":TOKEN,"Content-Type":"application/json"},
+    body:opt.body?JSON.stringify(opt.body):undefined});}
+  catch(e){$("#stopped").classList.add("on");throw new Error("The assistant has stopped.");}
+  let data={};try{data=await res.json();}catch(e){}
+  if(!res.ok)throw new Error(data.error||("Something went wrong ("+res.status+")."));
+  return data;
+}
+async function upload(kind,file){
+  let res;
+  try{res=await fetch("/api/import/"+kind,{method:"POST",headers:{"X-Assistant-Token":TOKEN,"X-Filename":file.name},body:file});}
+  catch(e){throw new Error("Couldn't send that file.");}
+  const d=await res.json().catch(()=>({}));if(!res.ok)throw new Error(d.error||"That file didn't work.");return d;
+}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function inline(s){return esc(s).replace(/`([^`]+)`/g,"<code>$1</code>").replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>");}
+function md(src){ // escapes first, so nothing from an email can become markup; links stay plain text on purpose
+  let html="",list=null;const close=()=>{if(list){html+="</"+list+">";list=null;}};
+  for(const raw of String(src).split("\n")){const l=raw.trimEnd();let m;
+    if(!l.trim()){close();continue;}
+    if(m=l.match(/^#{1,4}\s+(.*)/)){close();html+="<h3>"+inline(m[1])+"</h3>";}
+    else if(m=l.match(/^\s*[-*•]\s+(.*)/)){if(list!=="ul"){close();html+="<ul>";list="ul";}html+="<li>"+inline(m[1])+"</li>";}
+    else if(m=l.match(/^\s*\d+[.)]\s+(.*)/)){if(list!=="ol"){close();html+="<ol>";list="ol";}html+="<li>"+inline(m[1])+"</li>";}
+    else{close();html+="<p>"+inline(l)+"</p>";}}
+  close();return html;
+}
+const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const plural=(n,a,b)=>n+" "+(n===1?a:b);
+const money=n=>"$"+Math.round(n).toLocaleString();
+const when=iso=>new Date(iso).toLocaleString([],{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
+function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("on");clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove("on"),2800);}
+const guard=fn=>async(...a)=>{try{return await fn(...a);}catch(e){toast(e.message);}};
+
+const LOADERS={};
+const store={get:k=>{try{return localStorage.getItem(k);}catch(e){return null;}},set:(k,v)=>{try{localStorage.setItem(k,v);}catch(e){}}};
+function setOpen(b,open){b.classList.toggle("open",open);const f=b.querySelector(".fold");if(f){f.setAttribute("aria-expanded",open);}store.set("open-"+b.id,open?"1":"0");}
+$$(".block").forEach(b=>{
+  const inner=b.firstElementChild,head=inner.querySelector(".head");
+  const body=document.createElement("div");body.className="foldbody";
+  while(head.nextSibling)body.appendChild(head.nextSibling);inner.appendChild(body);
+  const name=head.querySelector("h2").textContent;
+  const btn=document.createElement("button");btn.type="button";btn.className="fold";btn.setAttribute("aria-label",name);
+  btn.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+  const old=head.querySelector("button");head.appendChild(btn);
+  head.addEventListener("click",e=>{if(e.target.closest(".link"))return;setOpen(b,!b.classList.contains("open"));});
+  setOpen(b,store.get("open-"+b.id)==="1");
+});
+function syncTheme(){const d=document.documentElement.dataset.theme==="dark";$("#theme").textContent=d?"Light mode":"Dark mode";}
+$("#theme").addEventListener("click",()=>{const d=document.documentElement.dataset.theme!=="dark";document.documentElement.dataset.theme=d?"dark":"light";store.set("theme",d?"dark":"light");syncTheme();});
+syncTheme();
+function go(v){const e=document.getElementById("view-"+v);
+  if(e&&e.classList.contains("block")){setOpen(e,true);e.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion:reduce)").matches?"auto":"smooth",block:"start"});}
+  else show(v);}
+function show(v){
+  currentView=v;
+  $$(".view").forEach(e=>e.classList.toggle("on",e.id==="view-"+v));
+  $$("nav button").forEach(b=>{if(b.dataset.view===v)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current");});
+  LOADERS[v]();
+  renderAsk();
+}
+$$("nav button").forEach(b=>b.addEventListener("click",()=>show(b.dataset.view)));
+
+/* status */
+async function loadStatus(){
+  try{status=await api("/api/status");}catch(e){return;}
+    const src=[["Gmail",status.gmail_signed_in],["Calendar",status.calendar],["Outlook",status.outlook]];
+  $("#sources").innerHTML=src.map(([n,s])=>`<div><span class="dot ${s?"on":"off"}"></span>${esc(n)}${s?"":" not connected"}</div>`).join("");
+  $("#autoNote").textContent=status.auto_minutes?"Checks by itself every "+(status.auto_minutes>=60?(status.auto_minutes/60)+(status.auto_minutes===60?" hour":" hours"):status.auto_minutes+" minutes")+" while open, so you don't need to press this.":"";
+  const b=$("#banner");
+  if(status.key_problem){b.textContent="Claude isn't set up yet. "+status.key_problem;b.classList.remove("hidden");}
+  else b.classList.add("hidden");
+}
+
+/* Today */
+function greeting(){const h=new Date().getHours();return h<5?"Late night":h<12?"Good morning":h<18?"Good afternoon":"Good evening";}
+function alertRow(a){return `<div class="row ${a.level}" data-area="${esc(a.area)}"><span class="pip"></span><div><div class="t">${esc(a.title)}</div><div class="d">${esc(a.detail)}</div></div></div>`;}
+async function loadToday(){
+  await loadStatus();
+  const soft=(p,d)=>p.catch(()=>d);
+  const res=await Promise.all([soft(api("/api/alerts"),{alerts:[]}),soft(api("/api/new"),{items:[]}),soft(api("/api/appointments"),{appointments:[]}),soft(api("/api/tasks"),{tasks:[]})]);
+  const [al,nw,ap,tk]=res;
+  const row=(area,title,detail,btn)=>`<div class="row" data-area="${area}"><span class="pip"></span><div><div class="t">${esc(title)}</div>${detail?`<div class="d">${esc(detail)}</div>`:""}</div>${btn?`<button class="btn small quiet go" data-go="${btn[0]}" type="button">${esc(btn[1])}</button>`:""}</div>`;
+  const todo=[];
+  if(status.pending)todo.push(row("inbox",plural(status.pending,"item is","items are")+" waiting for your OK","Nothing goes out until you approve it.",["approvals","Review"]));
+  const today=iso(new Date()),soon=iso(new Date(Date.now()+3*864e5));
+  tk.tasks.filter(t=>t.status==="open"&&((t.due&&t.due<=soon)||t.priority==="high")).slice(0,5)
+    .forEach(t=>todo.push(row("inbox",t.title,t.due?(t.due<today?"Overdue, was due ":"Due ")+t.due:"High priority",["tasks","Open"])));
+  ap.appointments.filter(a=>a.status==="to_book").forEach(a=>todo.push(row("appointments","Book: "+a.kind+(a.provider?" with "+a.provider:""),a.purpose||"",["appts","Details"])));
+  al.alerts.forEach(a=>todo.push(row(a.area,a.title,a.detail,a.area==="budget"?["money","See"]:a.area==="health"?["health","See"]:a.area==="appointments"?["appts","See"]:null)));
+  if(status.gmail_needs_signin)todo.push(row("inbox","Connect Gmail","Double-click connect_windows.bat in your assistant folder."));
+  const feed=nw.items.map(i=>`<div class="row" style="box-shadow:none"><span class="pip" style="background:var(--line)"></span><div><div class="t" style="font-weight:560">${esc(i.text)}</div><div class="d">${esc(ago(i.at))}</div></div></div>`).join("");
+  $("#todayBody").innerHTML=`<div class="hello"><h1>${greeting()}</h1><p>${todo.length?plural(todo.length,"thing needs","things need")+" your action.":"Nothing needs you right now."}</p></div>
+    <div class="twocol">
+      <div><h3 class="lbl">Needs your action</h3><div class="heads">${todo.length?todo.join(""):`<div class="calm">All clear.</div>`}</div></div>
+      <div><h3 class="lbl">What's new</h3><div class="heads">${feed||`<p class="muted">Nothing new yet. Press Check now to look through your accounts.</p>`}</div></div>
+    </div>
+    <h3 class="lbl" style="margin-top:46px">Details</h3>`;
+  $$("#todayBody [data-go]").forEach(b=>b.addEventListener("click",()=>go(b.dataset.go)));
+}
+function ago(at){const m=Math.round((Date.now()-new Date(at))/6e4);if(isNaN(m))return"";
+  if(m<1)return"Just now";if(m<60)return m+" min ago";const h=Math.round(m/60);if(h<24)return h+(h===1?" hour ago":" hours ago");
+  const d=Math.round(h/24);return d===1?"Yesterday":d+" days ago";}
+LOADERS.today=guard(loadToday);
+const loadTodayOnly=LOADERS.today;
+
+/* ask: a small chat docked under every page, about that page */
+const ASK={
+ today:["Ask about anything","What needs my attention today?","How am I doing on my budget?","Find a time for a dentist visit next week"],
+ approvals:["Ask about what's waiting for you","Which of these is most urgent?","Is anything here suspicious?"],
+ tasks:["Ask about your tasks","What should I do first?","Pull action items from my email"],
+ money:["Ask about your spending","How am I doing on my budget?","Set a $200 limit for Restaurants"],
+ health:["Ask about your workouts and habits","How were my workouts this week?","Set a goal of 4 workouts a week"],
+ appts:["Ask about appointments","Find a time for a dentist visit next week","What's coming up?"],
+ briefs:["Ask about your briefs","What changed since yesterday?"],
+ profile:null};
+async function renderAsk(){
+  const cfg=ASK[currentView];$("#ask").classList.toggle("hidden",!cfg);if(!cfg)return;
+  $("#chatInput").placeholder=cfg[0];
+  let d;try{d=await api("/api/chat");}catch(e){return;}
+  const mine=d.transcript.filter(m=>(m.view||"today")===currentView).slice(-6);
+  const log=$("#askLog");
+  log.innerHTML=mine.map(m=>{
+    if(m.role==="user")return `<div class="msg me">${esc(m.text)}</div>`;
+    if(m.role==="error")return `<div class="msg err">${esc(m.text)}</div>`;
+    const link=m.brief?`<p><button class="link" type="button" data-brief="${esc(m.brief)}">Saved in Briefs</button></p>`:"";
+    return `<div class="msg bot">${stepsHtml(m.steps)}${md(m.text)}${link}</div>`;}).join("")+`<div id="liveSlot"></div>`;
+  log.classList.toggle("hidden",!mine.length&&!busy);
+  $("#askChips").innerHTML=mine.length?"":cfg.slice(1).map(q=>`<button class="chip" type="button">${esc(q)}</button>`).join("");
+  $$("#askChips .chip").forEach(c=>c.addEventListener("click",()=>sendChat(c.textContent)));
+  $$("[data-brief]").forEach(b=>b.addEventListener("click",()=>{show("briefs");setTimeout(()=>openBrief(b.dataset.brief),150);}));
+  log.scrollTop=log.scrollHeight;
+  if(d.active_job&&!busy)followJob(d.active_job);
+}
+function stepsHtml(steps){
+  if(!steps||!steps.length)return"";
+  return `<details class="steps"><summary>${plural(steps.length,"step","steps")} taken</summary><ul>${steps.map(s=>"<li>"+esc(label(s))+"</li>").join("")}</ul></details>`;
+}
+function setBusy(b){busy=b;if($("#ask").classList.contains("collapsed")){$("#askOpenLabel").textContent=b?"Working…":($("#askOpen").classList.contains("ready")?"Answer ready":"Ask the assistant");}$("#sendBtn").disabled=b;$("#check").disabled=b;$("#checkLabel").textContent=b?"Working…":"Refresh now";}
+function liveView(events){
+  const slot=$("#liveSlot");if(!slot)return;
+  $("#askLog").classList.remove("hidden");
+  const seen=events.filter(e=>e.type==="tool").map(e=>label(e.tool));
+  const q=events.filter(e=>e.type==="queued").length;
+  const lines=[...new Set(seen)].slice(-5).map(s=>"<li>"+esc(s)+"</li>");
+  if(q)lines.push("<li>Held "+plural(q,"item","items")+" for your OK</li>");
+  slot.innerHTML=`<div class="msg live"><span class="pulse"></span>Working<ul>${lines.join("")}</ul></div>`;
+  $("#askLog").scrollTop=$("#askLog").scrollHeight;
+}
+async function followJob(id){
+  setBusy(true);
+  try{for(;;){const job=await api("/api/jobs/"+id);liveView(job.events);if(job.status!=="running")break;
+    await new Promise(r=>setTimeout(r,650));}}
+  catch(e){toast(e.message);}
+  setBusy(false);
+  if($("#ask").classList.contains("collapsed")){$("#askOpen").classList.add("ready");$("#askOpenLabel").textContent="Answer ready";}
+  await loadStatus();
+  if(LOADERS[currentView])await LOADERS[currentView]();  // the answer may have changed what this page shows
+  renderAsk();
+}
+async function sendChat(text){
+  text=(text||"").trim();if(!text||busy||!ASK[currentView])return;
+  setAsk(true);$("#chatInput").value="";autoGrow();$("#askChips").innerHTML="";
+  try{const cur=await api("/api/chat");
+    const mine=[...cur.transcript.filter(m=>(m.view||"today")===currentView).slice(-5),{role:"user",text}];
+    $("#askLog").classList.remove("hidden");
+    $("#askLog").innerHTML=mine.map(m=>m.role==="user"?`<div class="msg me">${esc(m.text)}</div>`:m.role==="error"?`<div class="msg err">${esc(m.text)}</div>`:`<div class="msg bot">${md(m.text)}</div>`).join("")+`<div id="liveSlot"></div>`;
+    const {job_id}=await api("/api/chat",{method:"POST",body:{text,view:currentView}});followJob(job_id);}
+  catch(e){toast(e.message);renderAsk();}
+}
+function setAsk(open){$("#ask").classList.toggle("collapsed",!open);
+  if(open){$("#askOpen").classList.remove("ready");$("#askOpenLabel").textContent="Ask the assistant";setTimeout(()=>{$("#chatInput").focus();const l=$("#askLog");l.scrollTop=l.scrollHeight;},30);}}
+$("#askOpen").addEventListener("click",()=>setAsk(true));
+$("#askClose").addEventListener("click",()=>setAsk(false));
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#ask").classList.contains("collapsed"))setAsk(false);});
+$("#chatForm").addEventListener("submit",e=>{e.preventDefault();sendChat($("#chatInput").value);});
+$("#chatInput").addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendChat($("#chatInput").value);}});
+function autoGrow(){const t=$("#chatInput");t.style.height="auto";t.style.height=Math.min(t.scrollHeight,140)+"px";}
+$("#chatInput").addEventListener("input",autoGrow);
+$("#check").addEventListener("click",async()=>{
+  if(busy)return;show("today");
+  try{const {job_id}=await api("/api/check",{method:"POST"});await renderAsk();followJob(job_id);}
+  catch(e){toast(e.message);}
+});
+
+/* approvals */
+LOADERS.approvals=guard(async()=>{
+  const d=await api("/api/approvals");const box=$("#pending");
+  if(!d.pending.length)box.innerHTML=`<p class="muted">Nothing is waiting. When the assistant wants to send or add something, it appears here first.</p>`;
+  else box.innerHTML=d.pending.map(a=>{
+    const ed=["subject","body","text"].filter(k=>k in a.args);
+    const fixed=Object.entries(a.args).filter(([k])=>!ed.includes(k)&&k!=="reason").map(([k,v])=>`<div class="muted small">${esc(k.replace("_"," "))}: ${esc(v)}</div>`).join("");
+    return `<div class="ask" data-id="${a.id}"><h3>${esc(ACTION_NAMES[a.tool]||"Take an action")}</h3>
+      ${a.reason?`<div>${esc(a.reason)}</div>`:""}${fixed}
+      ${ed.map(k=>`<label for="f${a.id}${k}">${k==="subject"?"Subject":"Message"}</label>${k==="subject"
+        ?`<input type="text" id="f${a.id}${k}" data-key="${k}" value="${esc(a.args[k])}">`
+        :`<textarea id="f${a.id}${k}" data-key="${k}">${esc(a.args[k])}</textarea>`}`).join("")}
+      <div class="acts"><button class="btn warn" data-act="approve" type="button">Approve</button>
+      <button class="btn quiet" data-act="deny" type="button">Don't do it</button>
+      <span class="muted small">Happens as you, from your account.</span></div></div>`;}).join("");
+  $("#recent").innerHTML=d.recent.length?d.recent.map(a=>`<span class="tag ${esc(a.status)}">${esc({approved:"Done",denied:"Declined",failed:"Failed",sending:"Working"}[a.status]||a.status)}</span>
+      <span>${esc(ACTION_NAMES[a.tool]||a.tool)}${a.reason?": "+esc(a.reason):""}</span><span class="muted">${esc(when(a.decided_at||a.created_at))}</span>`).join("")
+    :`<span class="muted" style="grid-column:1/-1">Nothing yet.</span>`;
+  $$("#pending textarea").forEach(t=>{t.style.height="auto";t.style.height=Math.min(Math.max(t.scrollHeight+6,120),420)+"px";});
+  $$("#pending [data-act]").forEach(b=>b.addEventListener("click",()=>decide(b)));
+});
+async function decide(btn){
+  const card=btn.closest(".ask"),id=card.dataset.id,act=btn.dataset.act;
+  card.querySelectorAll("button").forEach(b=>b.disabled=true);
+  try{const args={};card.querySelectorAll("[data-key]").forEach(f=>args[f.dataset.key]=f.value);
+    await api(`/api/approvals/${id}/${act}`,{method:"POST",body:act==="approve"?{args}:{}});
+    toast(act==="approve"?"Done":"Declined");}catch(e){toast(e.message);}
+  await LOADERS.approvals();await loadStatus();
+}
+
+/* tasks */
+LOADERS.tasks=guard(async()=>{
+  const d=await api("/api/tasks"+(showDone?"?status=all":""));
+  $("#toggleDone").textContent=showDone?"Hide completed":"Show completed";
+  const today=iso(new Date());
+  $("#taskList").innerHTML=d.tasks.length?d.tasks.map(t=>{
+    const over=t.status==="open"&&t.due&&t.due<today;
+    return `<div class="task ${t.status==="done"?"done":""}"><button class="tick" type="button" data-id="${t.id}" data-to="${t.status==="done"?"open":"done"}"
+      aria-label="${t.status==="done"?"Mark as not done":"Mark as done"}: ${esc(t.title)}"></button>
+      <div><div class="t">${esc(t.title)}</div><div class="meta">${t.due?`<span class="${over?"over":""}">${over?"Overdue, ":"Due "}${esc(t.due)}</span>`:""}
+      ${t.priority==="high"?`<span class="hi">High priority</span>`:""}${t.source?`<span>${esc(t.source)}</span>`:""}</div></div></div>`;}).join("")
+    :`<p class="muted">No tasks yet. Add one above, or ask the assistant to pull action items from your email.</p>`;
+  $$(".tick").forEach(b=>b.addEventListener("click",async()=>{
+    try{await api("/api/tasks/"+b.dataset.id,{method:"POST",body:{status:b.dataset.to}});}catch(e){toast(e.message);}
+    await LOADERS.tasks();await loadStatus();}));
+});
+$("#toggleDone").addEventListener("click",()=>{showDone=!showDone;LOADERS.tasks();});
+$("#taskForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  try{await api("/api/tasks",{method:"POST",body:{title:$("#taskTitle").value,due:$("#taskDue").value,priority:$("#taskPri").value}});
+    $("#taskTitle").value="";$("#taskDue").value="";toast("Task added");}catch(err){toast(err.message);}
+  await LOADERS.tasks();await loadStatus();});
+
+/* money */
+LOADERS.money=guard(async()=>{
+  const bu=await api("/api/budget");
+  const g=bu.groups;
+  if(!bu.latest){$("#moneySub").textContent="No spending yet. Import your Copilot export below.";$("#moneyMix").innerHTML="";$("#cats").innerHTML='<p class="muted">Once you import, your categories appear here and you can set a monthly limit on each.</p>';return;}
+  $("#moneySub").textContent=new Date(bu.month+"-15").toLocaleString([],{month:"long",year:"numeric"})+", through "+bu.latest+".";
+  const mix=[["eating_out","c-eat","Eating out"],["groceries","c-groc","Groceries"],["shopping","c-shop","Shopping"],["other","c-oth","Everything else"]];
+  $("#moneyMix").innerHTML=`<h3>Where it's going</h3><div class="seg" style="height:14px;margin:10px 0">${mix.map(([k,c])=>g[k]>0?`<i class="${c}" style="flex:${g[k]}"></i>`:"").join("")}</div>
+    <div class="legend">${mix.filter(([k])=>g[k]>0).map(([k,c,l])=>`<span><b class="${c}"></b>${l} ${money(g[k])}</span>`).join("")}</div>`;
+  const rows=bu.rows.filter(r=>r.spent>0||r.limit).slice(0,20);
+  $("#cats").innerHTML=rows.map(r=>{
+    const pct=r.limit?r.spent/r.limit:0,cls=r.limit?(pct>=1?"over":pct>=.8?"near":""):"";
+    return `<div class="cat"><div><div class="nm">${esc(r.category)}</div><div class="amt">${money(r.spent)}${r.limit?" of "+money(r.limit):""}</div></div>
+      <div class="bar ${cls}" aria-hidden="true">${r.limit?`<i style="width:${Math.min(100,pct*100)}%"></i>`:""}</div>
+      <div><label class="hidden" for="lim-${esc(r.category)}">Monthly limit for ${esc(r.category)}</label><input type="number" min="0" step="any" id="lim-${esc(r.category)}" data-cat="${esc(r.category)}" value="${r.limit||""}" placeholder="Set limit"></div></div>`;}).join("");
+  $$("#cats input").forEach(i=>i.addEventListener("change",guard(async()=>{
+    const d=await api("/api/budget/limit",{method:"POST",body:{category:i.dataset.cat,monthly:i.value}});toast(d.message);
+    await LOADERS.money();await loadStatus();})));
+});
+$("#csvBtn").addEventListener("click",()=>$("#csvFile").click());
+$("#csvFile").addEventListener("change",guard(async e=>{const f=e.target.files[0];if(!f)return;e.target.value="";
+  $("#csvBtn").disabled=true;try{const d=await upload("transactions",f);toast(d.message);}finally{$("#csvBtn").disabled=false;}
+  await LOADERS.money();await loadStatus();}));
+
+/* health */
+LOADERS.health=guard(async()=>{
+  const he=await api("/api/health");
+  $("#goals").innerHTML=he.goals.length?he.goals.map(g=>`<div class="goal"><div style="display:flex;justify-content:space-between;gap:10px"><strong>${esc(g.title)}</strong>
+    <span class="muted small">${g.done} of ${g.target} ${esc(g.metric.replace("_"," "))} this ${esc(g.period)} <button class="link" data-rm="${g.id}" type="button">remove</button></span></div>
+    <div class="bar" style="margin-top:8px"><i style="width:${Math.min(100,g.done/g.target*100)}%"></i></div></div>`).join("")
+    :'<p class="muted">No goals yet. Add one below, for example 4 workouts per week.</p>';
+  $$("[data-rm]").forEach(b=>b.addEventListener("click",guard(async()=>{await api("/api/goals/"+b.dataset.rm+"/remove",{method:"POST"});await LOADERS.health();})));
+  $("#wList").innerHTML=he.workouts.slice(0,6).map(w=>`<div>${esc(w.day)} · ${esc(w.kind)}${w.minutes?" · "+Math.round(w.minutes)+" min":""}${w.distance_km?" · "+(w.distance_km/1.609344).toFixed(1)+" mi":""}</div>`).join("")||"No workouts logged yet.";
+  $("#mList").innerHTML=he.meals.slice(0,6).map(m=>`<div>${esc(m.day)} · ${esc(m.meal)}</div>`).join("");
+});
+$("#goalForm").addEventListener("submit",guard(async e=>{e.preventDefault();
+  await api("/api/goals",{method:"POST",body:{title:$("#gTitle").value,target:$("#gTarget").value,metric:$("#gMetric").value,period:$("#gPeriod").value}});
+  $("#gTitle").value="";$("#gTarget").value="";toast("Goal added");await LOADERS.health();}));
+$("#wForm").addEventListener("submit",guard(async e=>{e.preventDefault();
+  await api("/api/workouts",{method:"POST",body:{kind:$("#wKind").value,minutes:$("#wMin").value,distance:$("#wDist").value,unit:$("#wUnit").value}});
+  $("#wKind").value="";$("#wMin").value="";$("#wDist").value="";toast("Logged");await LOADERS.health();}));
+$("#mForm").addEventListener("submit",guard(async e=>{e.preventDefault();
+  await api("/api/meals",{method:"POST",body:{meal:$("#mText").value}});$("#mText").value="";toast("Added");await LOADERS.health();}));
+$("#healthBtn").addEventListener("click",()=>$("#healthFile").click());
+$("#healthFile").addEventListener("change",guard(async e=>{const f=e.target.files[0];if(!f)return;e.target.value="";
+  $("#healthBtn").disabled=true;toast("Reading your export. This can take a minute…");
+  try{const d=await upload("health",f);toast(d.message);}finally{$("#healthBtn").disabled=false;}
+  await LOADERS.health();}));
+
+/* appointments */
+LOADERS.appts=guard(async()=>{
+  const d=await api("/api/appointments");
+  $("#apptCal").innerHTML=d.calendar?"":`<div class="row" data-area="appointments" style="margin-bottom:16px"><span class="pip"></span><div><div class="t">Google Calendar isn't connected</div><div class="d">Double-click connect_calendar_windows.bat in your assistant folder so the assistant can find free time.</div></div></div>`;
+  $("#apptList").innerHTML=d.appointments.length?d.appointments.map(a=>`<div class="card appt"><div style="flex:1 1 260px">
+      <div><span class="pill ${esc(a.kind)}">${esc(a.kind)}</span><strong>${esc(a.provider||"Not chosen yet")}</strong></div>
+      <div class="muted small">${esc(a.purpose||"")}</div></div>
+      <div class="when">${a.start?esc(when(a.start)):"No time yet"}</div>
+      <div class="acts" style="margin:0">
+        ${a.booking_link?`<button class="btn small quiet" data-copy="${esc(a.booking_link)}" type="button">Copy booking link</button>`:""}
+        ${a.status==="to_book"?`<button class="btn small" data-st="booked" data-id="${a.id}" type="button">I booked it</button>`:`<button class="btn small quiet" data-st="done" data-id="${a.id}" type="button">Done</button>`}
+        <button class="link small" data-st="cancelled" data-id="${a.id}" type="button">Cancel</button></div></div>`).join("")
+    :'<p class="muted">Nothing scheduled. Ask below, for example: "Find a time for a dentist visit next week".</p>';
+  $$("[data-st]").forEach(b=>b.addEventListener("click",guard(async()=>{await api("/api/appointments/"+b.dataset.id,{method:"POST",body:{status:b.dataset.st}});await LOADERS.appts();await loadStatus();})));
+  $$("[data-copy]").forEach(b=>b.addEventListener("click",()=>{navigator.clipboard.writeText(b.dataset.copy).then(()=>toast("Link copied. Paste it into your browser."),()=>toast("Couldn't copy."));}));
+});
+$("#apForm").addEventListener("submit",guard(async e=>{e.preventDefault();
+  await api("/api/appointments",{method:"POST",body:{kind:$("#apKind").value,provider:$("#apProv").value,purpose:$("#apPurpose").value,start:$("#apStart").value,booking_link:$("#apLink").value}});
+  ["#apProv","#apPurpose","#apStart","#apLink"].forEach(i=>$(i).value="");toast("Added");await LOADERS.appts();await loadStatus();}));
+
+/* briefs + profile */
+LOADERS.briefs=guard(async()=>{
+  const d=await api("/api/briefs");
+  $("#briefList").innerHTML=d.briefs.length?d.briefs.map(b=>`<button type="button" data-name="${esc(b.name)}">${esc(when(b.modified))}</button>`).join("")
+    :`<p class="muted">No briefs yet. Press Check now to make the first one.</p>`;
+  $$("#briefList button").forEach(b=>b.addEventListener("click",()=>openBrief(b.dataset.name)));
+  if(d.briefs.length)openBrief(d.briefs[0].name);else $("#briefBody").innerHTML="";
+});
+async function openBrief(name){
+  $$("#briefList button").forEach(b=>b.setAttribute("aria-current",b.dataset.name===name));
+  try{const d=await api("/api/briefs/"+encodeURIComponent(name));$("#briefBody").innerHTML=`<div class="card">${md(d.text.replace(/^#\s+/,"## "))}</div>`;}
+  catch(e){toast(e.message);}
+}
+LOADERS.profile=guard(async()=>{$("#profileText").value=(await api("/api/profile")).text;});
+$("#saveProfile").addEventListener("click",guard(async()=>{await api("/api/profile",{method:"POST",body:{text:$("#profileText").value}});toast("Saved");}));
+
+$("#quit").addEventListener("click",async e=>{
+  const b=e.currentTarget;
+  if(!b.dataset.sure){b.dataset.sure="1";b.textContent="Click again to quit";
+    setTimeout(()=>{delete b.dataset.sure;b.textContent="Quit assistant";},3500);return;}
+  try{await api("/api/quit",{method:"POST"});}catch(err){}
+  $("#stopped").classList.add("on");});
+
+LOADERS.today=async()=>{await loadTodayOnly();await Promise.all(["approvals","tasks","money","health","appts"].map(k=>LOADERS[k]()));};
+show("today");setInterval(async()=>{if(busy)return;await loadStatus();if(status.busy&&status.active_job){followJob(status.active_job);}},12000);
+</script>
+</body>
+</html>

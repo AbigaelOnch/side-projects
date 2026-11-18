@@ -11,3 +11,7 @@ Personal side projects, one folder each.
 - `acceptance-validation`: prove it works, including on your own machine
 
 Start a project by running `claude` here and asking: "Use the software-factory skill to build X".
+
+## Projects
+
+- [`ai-assistant/`](ai-assistant/): a personal assistant that checks email, tracks budget, workouts and appointments, and acts only with your approval. Runs locally on Windows or Mac.

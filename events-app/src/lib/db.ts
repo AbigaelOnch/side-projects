@@ -1,8 +1,9 @@
-import Database from "better-sqlite3";
+import type { DatabaseSync, StatementSync } from "node:sqlite";
 import fs from "node:fs";
 import path from "node:path";
 
-// One SQLite file on this computer. Versioned migrations below; the same tables move to Postgres when hosted.
+// One SQLite file on this computer, using the SQLite built into Node.js (no native add-on to compile).
+// Versioned migrations below; the same tables move to Postgres when hosted.
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), "data");
 
 const MIGRATIONS: string[] = [
@@ -89,24 +90,62 @@ const MIGRATIONS: string[] = [
   `,
 ];
 
-function open(): Database.Database {
+type Param = string | number | bigint | null | Uint8Array;
+const clean = (v: unknown): Param => (v === undefined ? null : typeof v === "boolean" ? (v ? 1 : 0) : (v as Param));
+function args(a: unknown[]): never[] {
+  if (a.length === 1 && a[0] && typeof a[0] === "object" && !ArrayBuffer.isView(a[0])) {
+    return [Object.fromEntries(Object.entries(a[0] as object).map(([k, v]) => [k, clean(v)]))] as never[];
+  }
+  return a.map(clean) as never[];
+}
+
+class Statement {
+  constructor(private s: StatementSync) {}
+  run(...a: unknown[]) { const r = this.s.run(...args(a)); return { changes: Number(r.changes), lastInsertRowid: Number(r.lastInsertRowid) }; }
+  // Rows come back without a prototype; copy them into plain objects so they can be passed to the page.
+  get(...a: unknown[]): unknown { const r = this.s.get(...args(a)); return r ? { ...r } : undefined; }
+  all(...a: unknown[]): unknown[] { return this.s.all(...args(a)).map((r) => ({ ...r })); }
+}
+
+export class Db {
+  private depth = 0;
+  constructor(private d: DatabaseSync) {}
+  prepare(sql: string) { return new Statement(this.d.prepare(sql)); }
+  exec(sql: string) { this.d.exec(sql); }
+  close() { this.d.close(); }
+  /** Same shape as before: db.transaction(fn)() runs fn inside a transaction. */
+  transaction<T>(fn: () => T): () => T {
+    return () => {
+      if (this.depth > 0) return fn();
+      this.d.exec("BEGIN");
+      this.depth++;
+      try { const out = fn(); this.d.exec("COMMIT"); return out; }
+      catch (e) { this.d.exec("ROLLBACK"); throw e; }
+      finally { this.depth--; }
+    };
+  }
+}
+
+function open(): Db {
   fs.mkdirSync(DATA_DIR, { recursive: true });
-  const db = new Database(path.join(DATA_DIR, "app.db"));
-  db.pragma("journal_mode = WAL");
-  db.pragma("foreign_keys = ON");
-  const current = db.pragma("user_version", { simple: true }) as number;
+  // getBuiltinModule keeps bundlers and test runners from trying to resolve "sqlite" as a package.
+  const { DatabaseSync } = process.getBuiltinModule("node:sqlite") as typeof import("node:sqlite");
+  const raw = new DatabaseSync(path.join(DATA_DIR, "app.db"));
+  raw.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;");
+  const db = new Db(raw);
+  const current = Number((raw.prepare("PRAGMA user_version").get() as { user_version: number }).user_version);
   for (let v = current; v < MIGRATIONS.length; v++) {
     db.transaction(() => {
-      db.exec(MIGRATIONS[v]);
-      db.pragma(`user_version = ${v + 1}`);
+      raw.exec(MIGRATIONS[v]);
+      raw.exec(`PRAGMA user_version = ${v + 1}`);
     })();
   }
   return db;
 }
 
 // Reuse one connection across hot reloads in dev.
-const g = globalThis as unknown as { __eventsDb?: Database.Database };
-export function db(): Database.Database {
+const g = globalThis as unknown as { __eventsDb?: Db };
+export function db(): Db {
   if (!g.__eventsDb) g.__eventsDb = open();
   return g.__eventsDb;
 }

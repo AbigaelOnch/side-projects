@@ -5,7 +5,7 @@ No login for visitors. Prototype, running locally. See `SPEC.md` for what it doe
 
 ## Run it on Windows
 
-1. Install Node.js LTS from https://nodejs.org (once).
+1. Install Node.js LTS (version 22 or newer) from https://nodejs.org (once).
 2. Double-click **Start Afro Social.bat**. The first run installs what it needs, then opens http://localhost:3000.
 3. Optional: double-click **Add sample events.bat** to fill it with made-up events in Oakland, San Francisco and Los Angeles.
 

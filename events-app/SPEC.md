@@ -121,7 +121,9 @@ org falls back to manual submissions (recorded per org).
   flyers, then a sticky row with the time tabs and one **Filters** button (bottom sheet: kind of event, distance, free, dating), then the
   feed grouped under day headers (Today, Tomorrow, Saturday…). Share screen: one large paste field with a flyer button inside it.
   **Fonts reverted 2026-11-17**: the owner found the serif old-fashioned. DM Sans for all headings and text, Syne only for the wordmark. No serif.
-  **Colours changed 2026-11-17 to Espresso + orange**: ground `#1A1210`, surfaces `#261B17` / `#32241E`, text `#F7EFE6`, muted `#A8978A`,
+  **Colours: back to plum (final, 2026-11-17)** after trying Espresso + orange: ground `#1C1020`, surfaces `#291830` / `#33203A`, pink `#FF5C8A`
+  (main action), gold `#F5C451` (dates and times). The espresso values in the next line are no longer used.
+  ~~Colours changed 2026-11-17 to Espresso + orange~~: ground `#1A1210`, surfaces `#261B17` / `#32241E`, text `#F7EFE6`, muted `#A8978A`,
   orange `#FF7A45` (main action), amber `#F2B84B` (dates and times). This replaces the plum, pink and gold values above.
   Dark is the main theme; a light variant is not planned for the prototype (backlog).
 - Accessibility: visible keyboard focus, alt text from titles, 4.5:1 text contrast over images (with a scrim), and reduced motion respected.

@@ -13,7 +13,6 @@ const FLYERS: Record<string, string> = {
   "Lake Merritt Saturday Run": "run.jpg",
   "Singles Paint & Sip": "paint.jpg",
   "Diaspora Book Club: New Voices": "books.jpg",
-  "First Friday Mixer for Black Professionals": "mixer.jpg",
 };
 function copyFlyers() {
   const dir = path.join(process.env.DATA_DIR || path.join(process.cwd(), "data"), "uploads");

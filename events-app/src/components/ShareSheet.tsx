@@ -229,23 +229,25 @@ export function ShareSheet({ initial }: { initial: string }) {
 
   return (
     <div className="sheet-body">
-      <form onSubmit={(e) => { e.preventDefault(); void readLink(link); }}>
+      <form className="sheet-body" onSubmit={(e) => { e.preventDefault(); void readLink(link); }}>
         <label htmlFor="link">Paste an event link or Instagram post</label>
-        <div className="linkrow">
+        <div className="field">
           <input id="link" type="url" inputMode="url" autoComplete="off" autoCapitalize="off" spellCheck={false}
-            value={link} onChange={(e) => setLink(e.target.value)} placeholder="eventbrite.com/e/… or instagram.com/p/…" />
-          <button type="submit" className="btn pink" disabled={!link.trim() || step.s === "reading"}>Go</button>
+            value={link} onChange={(e) => setLink(e.target.value)} placeholder="Paste a link here" />
+          <button type="button" className="inbtn" aria-label="Add a flyer screenshot instead" onClick={() => fileRef.current?.click()}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3" /><circle cx="9" cy="10" r="1.6" /><path d="M21 16l-5-5-9 8" /></svg>
+          </button>
         </div>
+        {link.trim() || !canPaste
+          ? <button type="submit" className="btn pink wide" disabled={!link.trim() || step.s === "reading"}>Find the event</button>
+          : <button type="button" className="btn pink wide" onClick={paste}>Paste link</button>}
       </form>
-      {canPaste && step.s === "start" && <button type="button" className="btn wide" onClick={paste}>Paste link</button>}
 
       {step.s === "reading" && <p className="lede busy" role="status"><span className="dot" /> {step.what}</p>}
       {step.s === "problem" && <p className="warn" role="alert">{step.message}</p>}
-
-      <div className="or-line"><span>or</span></div>
-      {flyerButton("Add a flyer screenshot")}
+      {step.s === "problem" && flyerButton("Add a flyer screenshot")}
       {step.s === "problem" && <button type="button" className="btn wide" onClick={() => { setD({}); setMissing([]); setStep({ s: "form" }); }}>Fill it in myself</button>}
-      <p className="fine">No account needed. Every event is checked before it shows up.</p>
+      <p className="fine">Works with Eventbrite, Luma, Partiful, Posh, Meetup, Instagram and TikTok links, or a flyer screenshot. No account needed.</p>
       {flyerInput}
     </div>
   );

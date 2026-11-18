@@ -92,3 +92,17 @@ export function fmtDay(iso: string, tz: string, now = new Date()): string {
 export function fmtLongDate(iso: string, tz: string): string {
   return new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "long", month: "long", day: "numeric" }).format(new Date(iso));
 }
+
+/** Day header for the feed: key for grouping, a big label and a small date. */
+export function dayInfo(iso: string, tz: string, now = new Date()): { key: string; label: string; sub: string } {
+  const a = partsIn(new Date(iso), tz);
+  const b = partsIn(now, tz);
+  const days = Math.round((Date.UTC(a.y, a.m - 1, a.d) - Date.UTC(b.y, b.m - 1, b.d)) / 86400000);
+  const f = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("en-US", { timeZone: tz, ...o }).format(new Date(iso));
+  const md = f({ month: "short", day: "numeric" });
+  if (days < 0) return { key: "now", label: "Happening now", sub: "" };
+  const key = `${a.y}-${String(a.m).padStart(2, "0")}-${String(a.d).padStart(2, "0")}`;
+  if (days === 0) return { key, label: "Today", sub: `${f({ weekday: "short" })}, ${md}` };
+  if (days === 1) return { key, label: "Tomorrow", sub: `${f({ weekday: "short" })}, ${md}` };
+  return { key, label: f({ weekday: "long" }), sub: md };
+}

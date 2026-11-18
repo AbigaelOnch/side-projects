@@ -2,6 +2,7 @@ import { DEFAULT_TAB, TABS, type TabId } from "./config";
 import { cityBySlug, listCities, listEvents, parseCats, priceLabel, type City, type EventRow } from "./events";
 import { milesBetween, parseNear, parseRadius } from "./geo";
 import type { CardData } from "@/components/EventCard";
+import { dayInfo, fmtTime } from "./time";
 
 export type FeedParams = { city?: string; tab?: string; cat?: string; free?: string; dating?: string; cursor?: string; near?: string; r?: string };
 
@@ -29,11 +30,23 @@ export function readFeed(sp: FeedParams, cookieCity?: string, cookieDating?: str
 }
 
 export function toCard(e: EventRow): CardData {
+  const day = dayInfo(e.start_utc, e.tz);
   return {
-    id: e.id, title: e.title, start_utc: e.start_utc, tz: e.tz, venue_name: e.venue_name, image_path: e.image_path,
+    id: e.id, title: e.title, venue_name: e.venue_name, image_path: e.image_path,
     category: e.category, price: priceLabel(e), singles_friendly: e.singles_friendly, go_solo: e.go_solo,
     series_rule: e.series_rule ?? null, distance_mi: e.distance_mi ?? null,
+    time: fmtTime(e.start_utc, e.tz), day_key: day.key, day_label: day.label, day_sub: day.sub,
   };
+}
+
+/** A few upcoming events with flyers, for the shelf at the top of the home page. */
+export function featured(f: ReturnType<typeof readFeed>): CardData[] {
+  if (!f.city) return [];
+  const pick = (tab: "weekend" | "week") =>
+    listEvents({ city: f.city!, near: f.near, tab, cats: [], free: false, dating: f.dating, limit: 40 }).events.filter((e) => e.image_path);
+  let rows = pick("weekend");
+  if (rows.length < 3) rows = pick("week");
+  return rows.length < 2 ? [] : rows.slice(0, 6).map(toCard);
 }
 
 /** Build a feed URL query string, keeping filters shareable (S-012). */

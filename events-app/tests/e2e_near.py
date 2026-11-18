@@ -30,7 +30,7 @@ with sync_playwright() as p:
     check("S-005 cards show distance", " mi" in dist)
     pg.screenshot(path=f"{OUT}/m_near_feed.png")
     n25 = pg.locator(".card").count()
-    pg.click(".chips.radius >> text=5 mi")
+    pg.click("button.filters"); pg.click("dialog >> text=5 mi"); pg.click("dialog >> text=Show events"); pg.wait_for_url("**r=5**")
     pg.wait_for_load_state("networkidle")
     check("S-005 radius change updates URL", "r=5" in pg.url)
     n5 = pg.locator(".card").count()

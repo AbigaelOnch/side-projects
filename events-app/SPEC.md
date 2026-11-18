@@ -116,6 +116,10 @@ org falls back to manual submissions (recorded per org).
   flyer get quiet tonal plum artwork with one small pink or gold accent (no big poster words).
   Big vertical flyer cards (about 4:5), one or two per phone screen, with title, time and distance on a dark scrim at the bottom; a scrolling
   feed that loads more as you go. Tabs Tonight / This weekend / This week, then category chips. Floating pink **Share an event** button.
+  Revised again 2026-11-17 (v0.3 of the app): **Fraunces** serif for the wordmark, page headings and day headers, DM Sans for everything else;
+  slightly warmer plum; gold is used only for dates and times, pink only for the main action. Home page: a swipeable "Coming up" shelf of
+  flyers, then a sticky row with the time tabs and one **Filters** button (bottom sheet: kind of event, distance, free, dating), then the
+  feed grouped under day headers (Today, Tomorrow, Saturday…). Share screen: one large paste field with a flyer button inside it.
   Dark is the main theme; a light variant is not planned for the prototype (backlog).
 - Accessibility: visible keyboard focus, alt text from titles, 4.5:1 text contrast over images (with a scrim), and reduced motion respected.
 

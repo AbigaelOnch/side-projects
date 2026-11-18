@@ -3,7 +3,7 @@ from playwright.sync_api import sync_playwright
 BASE = "http://localhost:3000"
 OUT = sys.argv[1] if len(sys.argv) > 1 else "/home/claude/shots/afro"
 pages = [("home", "/?city=oakland"), ("home_month", "/?city=oakland&tab=month"), ("pick", "/?pick=1"),
-         ("dating", "/?city=oakland&dating=1&cat=dating&tab=month"), ("empty", "/?city=oakland&tab=tonight&cat=wellness")]
+         ("dating", "/?city=oakland&dating=1&cat=dating&tab=month"), ("share", "/share"), ("empty", "/?city=oakland&tab=tonight&cat=wellness")]
 with sync_playwright() as p:
     b = p.chromium.launch()
     for w, h, tag in [(390, 844, "m"), (1440, 900, "d")]:

@@ -88,6 +88,11 @@ const MIGRATIONS: string[] = [
   ALTER TABLE events ADD COLUMN reject_reason TEXT;
   ALTER TABLE events ADD COLUMN geo_status TEXT;
   `,
+  `
+  ALTER TABLE events ADD COLUMN review_by TEXT;
+  ALTER TABLE events ADD COLUMN review_note TEXT;
+  ALTER TABLE events ADD COLUMN reviewed_at TEXT;
+  `,
 ];
 
 type Param = string | number | bigint | null | Uint8Array;

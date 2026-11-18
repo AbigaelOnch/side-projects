@@ -45,7 +45,7 @@ with sync_playwright() as p:
     pg.fill("input[type=password]", "wrong-one"); pg.click("text=Sign in"); pg.wait_for_selector(".warn")
     check("wrong passcode is refused", "isn't right" in pg.locator(".warn").inner_text())
     pg.fill("input[type=password]", PASS); pg.click("text=Sign in")
-    pg.wait_for_selector("text=Waiting for review")
+    pg.wait_for_selector("text=Waiting for you")
     pg.wait_for_load_state("networkidle"); pg.wait_for_timeout(1500)
     card = pg.locator(".qcard", has_text=title)
     check("submission is in the queue with the submitter's details", card.count() == 1 and "Skyline Terrace" in card.inner_text())

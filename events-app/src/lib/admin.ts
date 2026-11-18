@@ -48,7 +48,7 @@ export type QueueItem = {
   venue_name: string | null; address: string | null; city_id: number | null; city_name: string | null; category: string;
   price_min: number | null; image_path: string | null; organiser: string | null; description: string | null;
   singles_friendly: number; go_solo: number; dating_format: string | null; age_range: string | null; online: number;
-  source_url: string | null; submitter_email: string | null; new_city: string | null; created_at: string;
+  source_url: string | null; submitter_email: string | null; new_city: string | null; created_at: string; review_note: string | null;
 };
 
 function localString(iso: string, tz: string): string {
@@ -69,12 +69,12 @@ export function pending(): QueueItem[] {
 }
 
 export function approve(id: number): boolean {
-  const r = db().prepare("UPDATE events SET status = 'approved', approved_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND status = 'pending'").run(id);
+  const r = db().prepare("UPDATE events SET status = 'approved', review_by = 'admin', approved_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND status = 'pending'").run(id);
   return r.changes === 1;
 }
 
 export function reject(id: number, reason?: string | null): boolean {
-  const r = db().prepare("UPDATE events SET status = 'rejected', reject_reason = ? WHERE id = ? AND status IN ('pending','approved')")
+  const r = db().prepare("UPDATE events SET status = 'rejected', review_by = 'admin', reject_reason = ? WHERE id = ? AND status IN ('pending','approved')")
     .run((reason ?? "").slice(0, 300) || null, id);
   return r.changes === 1;
 }

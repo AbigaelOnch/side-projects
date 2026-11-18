@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { approve, reject, updateEvent } from "@/lib/admin";
 import { geocodeEvent } from "@/lib/geocode";
+import { restore } from "@/lib/review";
 import { adminOk, unauthorized } from "@/lib/http";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +23,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
   if (body.action === "reject") {
     if (!reject(id, body.reason)) return NextResponse.json({ error: "That event was already handled." }, { status: 409 });
+    return NextResponse.json({ ok: true });
+  }
+  if (body.action === "restore") {
+    if (!restore(id)) return NextResponse.json({ error: "That event can't be restored." }, { status: 409 });
+    void geocodeEvent(id).catch(() => null);
     return NextResponse.json({ ok: true });
   }
   return NextResponse.json({ error: "Unknown action" }, { status: 400 });

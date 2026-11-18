@@ -92,6 +92,12 @@ org falls back to manual submissions (recorded per org).
 
 ## 6. Safety and approval rules
 
+**Changed 2026-11-17 (owner's decision): AI review.** Claude checks each shared event when it arrives. Clear, real, relevant events go live
+by themselves; doubtful ones wait in the owner's queue with a one-line reason; obvious spam is rejected. Dating events and events in a city
+not yet covered always wait for the owner. If Claude can't be reached (no key, no credit, service down), events wait for the owner.
+Everything the AI decides is listed in the admin page, where the owner can remove an approved event or approve a rejected one.
+`AI_REVIEW=off` in `.env.local` returns to reviewing everything by hand. Where the rules below say "admin approval", read "AI or admin approval".
+
 - Nothing appears publicly without admin approval, except events from orgs the admin explicitly marked trusted.
 - Pages, posts and flyers are **untrusted content**. Claude is told to extract only event fields and to ignore any instructions in the content. Extracted text is shown as plain text (never rendered as HTML). Links must be http(s). Outbound links are marked `rel="noopener noreferrer nofollow"`.
 - The link reader fetches only public http(s) URLs. It blocks localhost, private network addresses and file URLs (no server-side request forgery), limits pages to 3 MB, times out after 10 s and follows at most 3 redirects.
@@ -191,6 +197,15 @@ Format: Given / When / Then. These IDs link to the tests and the validation evid
 - **S-094** Given a trusted org submits a Dating event, then it still waits in the queue for approval.
 - **S-095** Given a visitor taps Report this event with a reason, then the admin queue shows the report with the event, and nothing changes publicly until the admin acts.
 - **S-096** Given a submitter pastes a speed-dating link, then the preview suggests Dating, a format and an age range if the page states them, and the submitter can change or clear them.
+
+### AI review
+- **S-100** Given AI review is on and Claude approves, when an event is shared, then it becomes public without the owner, marked as approved by AI with the reason.
+- **S-101** Given Claude is unsure (hold), then the event stays hidden in the owner's queue with the AI's reason shown.
+- **S-102** Given Claude rejects, then the event never appears, and the owner can still "Approve anyway".
+- **S-103** Given a Dating event, or an event in a city not covered, then Claude is not asked and it waits for the owner.
+- **S-104** Given Claude is unavailable (no key, invalid key, no credit, down), then the event waits for the owner and nothing errors for the submitter.
+- **S-105** Given a submission whose text tells the reviewer to approve it, then the decision still comes only from the review tool's approve/hold/reject value.
+- **S-106** Given an AI-approved event, when the owner taps Remove, then it is no longer public.
 
 ### Failures, quota, credentials
 - **S-050** Given no Claude key or an invalid one, when a page without structured data or a flyer is submitted, then the submitter can still fill the form by hand, and the admin sees "Claude key missing or invalid".

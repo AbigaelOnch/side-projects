@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import type { QueueItem, ReportItem } from "@/lib/admin";
+import type { AiDecision } from "@/lib/review";
 
 type City = { id: number; name: string; tz: string };
 const CATS = [["networking", "Networking"], ["career", "Career & tech"], ["social", "Social & culture"], ["wellness", "Wellness"], ["dating", "Dating"]] as const;
@@ -28,7 +29,7 @@ export function AdminLogin({ unset }: { unset: boolean }) {
   );
 }
 
-export function AdminApp(p: { queue: QueueItem[]; reports: ReportItem[]; cities: City[]; noLocation: { id: number; title: string; address: string | null }[]; claude: boolean; approvedCount: number }) {
+export function AdminApp(p: { ai: AiDecision[]; aiOn: boolean; queue: QueueItem[]; reports: ReportItem[]; cities: City[]; noLocation: { id: number; title: string; address: string | null }[]; claude: boolean; approvedCount: number }) {
   const [err, setErr] = useState<string | null>(null);
   const done = (m: string | null) => { if (m) setErr(m); else window.location.reload(); };
   return (
@@ -46,8 +47,11 @@ export function AdminApp(p: { queue: QueueItem[]; reports: ReportItem[]; cities:
       )}
 
       <section>
-        <h2>Waiting for review <span className="num">{p.queue.length}</span></h2>
-        {p.queue.length === 0 && <p className="hint">Nothing is waiting. Shared events show up here before they go public.</p>}
+        <h2>Waiting for you <span className="num">{p.queue.length}</span></h2>
+        <p className="hint" style={{ marginBottom: 12 }}>{p.aiOn
+          ? "AI review is on: clear events go live by themselves, and only the ones it isn't sure about wait here."
+          : "AI review is off (it needs your Claude key in .env.local), so every shared event waits here."}</p>
+        {p.queue.length === 0 && <p className="hint">Nothing is waiting.</p>}
         {p.queue.map((q) => <QueueCard key={q.id} q={q} cities={p.cities} done={done} />)}
       </section>
 
@@ -60,6 +64,24 @@ export function AdminApp(p: { queue: QueueItem[]; reports: ReportItem[]; cities:
             <div className="qactions">
               <button type="button" className="btn" onClick={async () => done(await post(`/api/admin/reports/${r.id}`, { remove: false }))}>Keep event</button>
               <button type="button" className="btn danger" onClick={async () => done(await post(`/api/admin/reports/${r.id}`, { remove: true }))}>Remove event</button>
+            </div>
+          </div>
+        ))}
+      </section>
+
+      <section>
+        <h2>Decided by AI</h2>
+        {p.ai.length === 0 && <p className="hint">Nothing yet. Events the AI approves or rejects are listed here so you can overrule it.</p>}
+        {p.ai.map((a) => (
+          <div key={a.id} className="qcard" data-testid={`ai-${a.id}`}>
+            <div>
+              {a.status === "approved" ? <a href={`/e/${a.id}`}><b>{a.title}</b></a> : <b>{a.title}</b>}
+              <div className="meta">{a.status === "approved" ? "Approved" : "Rejected"} · {a.review_note || "No reason given"}</div>
+            </div>
+            <div className="qactions">
+              {a.status === "approved"
+                ? <button type="button" className="btn danger" onClick={async () => done(await post(`/api/admin/events/${a.id}`, { action: "reject", reason: "Removed by admin" }))}>Remove</button>
+                : <button type="button" className="btn" onClick={async () => done(await post(`/api/admin/events/${a.id}`, { action: "restore" }))}>Approve anyway</button>}
             </div>
           </div>
         ))}
@@ -98,7 +120,7 @@ function QueueCard({ q, cities, done }: { q: QueueItem; cities: City[]; done: (m
           <div className="meta">{when} · {[q.venue_name, q.address].filter(Boolean).join(", ") || "No place given"}</div>
           <div className="meta">{CATS.find((c) => c[0] === q.category)?.[1]}{q.price_min === 0 ? " · Free" : q.price_min != null ? ` · $${q.price_min}` : ""}{q.city_name ? ` · ${q.city_name}` : ""}</div>
           {q.new_city && !q.city_id && <div className="flag">New city: {q.new_city}. Pick a city below or add one first.</div>}
-          {q.category === "dating" && <div className="flag">Dating event: always reviewed by you.</div>}
+          {q.review_note && <div className="flag">AI: {q.review_note}</div>}
           {q.source_url && <a className="meta" href={q.source_url} target="_blank" rel="noopener noreferrer nofollow">Open the original page</a>}
           {q.submitter_email && <div className="meta">From {q.submitter_email}</div>}
           {q.description && <p className="qdesc">{q.description}</p>}

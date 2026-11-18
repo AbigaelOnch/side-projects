@@ -70,14 +70,14 @@ function main() {
   if (has.n > 0) { console.log(`Sample events already there (${has.n}). Use --reset to recreate.`); return; }
 
   const ins = d.prepare(`INSERT INTO events (title, start_utc, end_utc, tz, venue_name, address, city_id, online, price_min, price_text,
-    organiser, description, category, singles_friendly, go_solo, dating_format, age_range, series_id, status, sample, approved_at, image_path)
+    organiser, description, category, singles_friendly, go_solo, dating_format, age_range, series_id, status, sample, approved_at, image_path, lat, lng)
     VALUES (@title, @start, @end, @tz, @venue, @address, @city, @online, @price, @price_text, @organiser, @desc, @category, @singles, @solo,
-    @dating_format, @age_range, @series, 'approved', 1, strftime('%Y-%m-%dT%H:%M:%fZ','now'), @image)`);
+    @dating_format, @age_range, @series, 'approved', 1, strftime('%Y-%m-%dT%H:%M:%fZ','now'), @image, @lat, @lng)`);
   const src = d.prepare("INSERT INTO event_sources (event_id, url, platform, origin) VALUES (?, ?, ?, 'admin')");
   const platforms = ["eventbrite", "luma", "partiful", "posh", "meetup"];
   let n = 0;
   d.transaction(() => {
-    const cities = d.prepare("SELECT * FROM cities").all() as { id: number; slug: string; name: string; tz: string }[];
+    const cities = d.prepare("SELECT * FROM cities").all() as { id: number; slug: string; name: string; tz: string; lat: number; lng: number }[];
     cities.forEach((c, ci) => {
       TEMPLATES.forEach((t, ti) => {
         for (let rep = 0; rep < 2; rep++) {
@@ -91,6 +91,9 @@ function main() {
             price: t.price, price_text: t.price_text ?? null, organiser: t.organiser, desc: t.desc, category: t.category,
             singles: t.singles ? 1 : 0, solo: t.go_solo ? 1 : 0, dating_format: t.dating_format ?? null, age_range: t.age_range ?? null, series: null,
             image: FLYERS[t.title] ? `sample-${FLYERS[t.title]}` : null,
+            // spread venues within a few miles of the city centre
+            lat: online ? null : c.lat + (((ti * 37 + rep * 11) % 100) / 100 - 0.5) * 0.07,
+            lng: online ? null : c.lng + (((ti * 53 + rep * 17) % 100) / 100 - 0.5) * 0.09,
           });
           const p = platforms[(ti + rep + ci) % platforms.length];
           src.run(r.lastInsertRowid, `https://example.com/${p}/${c.slug}-${ti}-${rep}`, p);
@@ -109,7 +112,7 @@ function main() {
         title: RUN.title, start: start.toISOString(), end: new Date(start.getTime() + 3600000).toISOString(), tz: oak.tz,
         venue: RUN.venue, address: "Lake Merritt, Oakland", city: oak.id, online: 0, price: 0, price_text: null, organiser: RUN.organiser,
         desc: RUN.desc, category: RUN.category, singles: 1, solo: 1, dating_format: null, age_range: null, series: s.lastInsertRowid,
-        image: `sample-${FLYERS[RUN.title]}`,
+        image: `sample-${FLYERS[RUN.title]}`, lat: 37.8019, lng: -122.2588,
       });
       src.run(r.lastInsertRowid, `https://example.com/luma/afro-run-crew-${w}`, "luma");
       n++;

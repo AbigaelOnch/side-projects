@@ -1,6 +1,7 @@
 import { db } from "./db";
 import { CATEGORY_IDS, PAGE_SIZE, type TabId } from "./config";
 import { tabRange } from "./time";
+import { boundingBox, milesBetween } from "./geo";
 
 export type City = { id: number; slug: string; name: string; tz: string; lat: number | null; lng: number | null; radius_mi: number };
 
@@ -12,6 +13,7 @@ export type EventRow = {
   singles_friendly: number; go_solo: number; dating_format: string | null; age_range: string | null;
   dress_code: string | null; structure: string | null; spots_text: string | null;
   series_id: number | null; status: string; city_name?: string; series_rule?: string | null;
+  lat?: number | null; lng?: number | null; distance_mi?: number;
 };
 
 export type Source = { url: string; platform: string | null };
@@ -27,6 +29,7 @@ export function cityBySlug(slug: string | undefined | null): City | undefined {
 
 export type FeedQuery = {
   city: City;
+  near?: { lat: number; lng: number; radius: number } | null;
   tab: TabId;
   cats: string[];
   free: boolean;
@@ -47,7 +50,7 @@ export function listEvents(q: FeedQuery): { events: EventRow[]; next: string | n
   const limit = q.limit ?? PAGE_SIZE;
   const where: string[] = [
     "e.status = 'approved'",
-    "e.city_id = @city",
+    q.near ? "e.lat BETWEEN @minLat AND @maxLat AND e.lng BETWEEN @minLng AND @maxLng AND e.online = 0" : "e.city_id = @city",
     // still upcoming or happening now (C12): ended events drop off
     "COALESCE(e.end_utc, e.start_utc) > @now",
     "e.start_utc < @to",
@@ -56,7 +59,9 @@ export function listEvents(q: FeedQuery): { events: EventRow[]; next: string | n
   ];
   const params: Record<string, unknown> = {
     city: q.city.id, now: now.toISOString(), from: from.toISOString(), to: to.toISOString(), limit: limit + 1,
+    ...(q.near ? boundingBox(q.near, q.near.radius) : {}),
   };
+  if (q.near) { delete params.city; delete params.limit; }
   let cats = q.cats;
   if (!q.dating) cats = cats.filter((c) => c !== "dating");
   if (cats.length) {
@@ -73,10 +78,18 @@ export function listEvents(q: FeedQuery): { events: EventRow[]; next: string | n
     params.cs = cs;
     params.ci = Number(ci) || 0;
   }
-  const rows = db().prepare(`
+  let rows = db().prepare(`
     SELECT e.*, s.rule_text AS series_rule FROM events e LEFT JOIN series s ON s.id = e.series_id
     WHERE ${where.join(" AND ")}
-    ORDER BY e.start_utc, e.id LIMIT @limit`).all(params) as EventRow[];
+    ORDER BY e.start_utc, e.id ${q.near ? "" : "LIMIT @limit"}`).all(params) as EventRow[];
+  if (q.near) {
+    // exact distance check on the box's candidates, then page (soonest first, distance shown on cards)
+    const c = q.near;
+    rows = rows
+      .map((r) => ({ ...r, distance_mi: milesBetween(c, { lat: r.lat as number, lng: r.lng as number }) }))
+      .filter((r) => r.distance_mi <= c.radius)
+      .slice(0, limit + 1);
+  }
   // A recurring series shows once: its next date (C8).
   const seen = new Set<number>();
   const out: EventRow[] = [];

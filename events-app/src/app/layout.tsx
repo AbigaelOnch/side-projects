@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: APP_NAME,
   description: "Events near you for the African diaspora: networking, career, culture, wellness and more.",
 };
-export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#1A0E24" };
+export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#1A0E24", viewportFit: "cover" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

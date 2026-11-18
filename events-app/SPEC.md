@@ -29,6 +29,18 @@ Users:
 - Needs internet for reading links, Claude, and checking followed organisations. Browsing already-saved events works offline.
 - Later (not in the prototype): hosted on Vercel with a Postgres database, a real domain, and admin login.
 
+### Mobile (must feel seamless; added 2026-11-17)
+- Phone is the main device. Every flow (browse, near me, event page, add to calendar, share an event) is designed and tested at 360–430 px first,
+  in iPhone Safari (WebKit) and Android Chrome.
+- Tap targets at least 44 px; no hover-only actions; sticky bottom actions respect the iPhone home-bar safe area; no horizontal scroll;
+  text inputs use 16 px+ so iPhone doesn't zoom in.
+- **Add to Home Screen**: web app manifest + icons, so it opens full screen like an app (no app store needed).
+- **Share straight from Instagram / TikTok / Eventbrite**: on Android, Afro Social appears in the phone's Share menu once added to the home
+  screen (Web Share Target), and the link lands in the submit sheet already pasted. iPhone doesn't allow this for websites, so on iPhone the
+  submit sheet offers a one-tap "Paste link" button that reads the clipboard after the user allows it.
+- Location and clipboard only work on secure (https) sites. They work on the PC at `localhost`; testing on a real phone needs an https link
+  to the PC (a secure tunnel) or a hosted preview. This is part of validation.
+
 ## 3. Tech (decided)
 
 - **Next.js (App Router) + TypeScript**, with React server components and route handlers for the API.
@@ -190,6 +202,13 @@ Format: Given / When / Then. These IDs link to the tests and the validation evid
 - **S-070** Given the code was updated but the old server is still running, then the footer version differs from `/api/version` in the new code, and the README says how to restart.
 - **S-071** Given the app is restarted, then all events, the queue and settings are still there.
 - **S-072** Given the start script is double-clicked twice, then the second copy says the app is already running and opens it, instead of crashing.
+
+### Mobile
+- **S-084** On an iPhone-sized WebKit browser (390×844) and an Android-sized Chrome (360×800), browse → open event → add to calendar → back works with thumb taps only, every tap target is ≥ 44 px, and nothing sits under the home bar.
+- **S-085** Given the app is added to the home screen, it opens full screen with the Afro Social icon and name.
+- **S-086** On Android, given the installed app, when the user shares an Instagram or Eventbrite link to Afro Social from another app, the submit sheet opens with the link filled in and reading starts.
+- **S-087** On iPhone, the submit sheet's "Paste link" button fills the field from the clipboard after the user allows it; if they don't, typing or long-press paste still works.
+- **S-088** Focusing any text field on iPhone does not zoom the page.
 
 ### Layout, theme, input
 - **S-080** At 360 px, 768 px and 1440 px widths, the home page, event page, submit sheet and admin queue have no overlapping or cut-off content and no horizontal scroll.

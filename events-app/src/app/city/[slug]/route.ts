@@ -6,6 +6,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
   const { slug } = await params;
   const city = cityBySlug(slug);
   const res = NextResponse.redirect(new URL(city ? `/?city=${city.slug}` : "/?pick=1", req.url), 303);
-  if (city) res.cookies.set("city", city.slug, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax", httpOnly: true });
+  if (city) {
+    res.cookies.set("city", city.slug, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax", httpOnly: true });
+    res.cookies.set("near", "0", { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" }); // picking a city turns off "near me"
+  }
   return res;
 }

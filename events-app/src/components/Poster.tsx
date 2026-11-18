@@ -1,10 +1,10 @@
-// Quiet, tonal artwork for events that have no flyer image. Deterministic per event, in the B palette:
-// a deep plum field, two soft tonal shapes, and one small accent (pink or gold).
+// Quiet, tonal artwork for events that have no flyer image. Deterministic per event, in the app palette:
+// a deep brown field, two soft tonal shapes, and one small accent (orange or amber).
 const PALETTES = [
-  { bg: "#2A1638", t1: "#3A1E4E", t2: "#4A2862", accent: "#FF5C8A" },
-  { bg: "#251433", t1: "#36204A", t2: "#46295E", accent: "#F5C451" },
-  { bg: "#2E1530", t1: "#432040", t2: "#5A2A52", accent: "#FF5C8A" },
-  { bg: "#1F1430", t1: "#2E2048", t2: "#3C2A5E", accent: "#F5C451" },
+  { bg: "#2A1D18", t1: "#3A2921", t2: "#4E382D", accent: "#FF7A45" },
+  { bg: "#241A16", t1: "#352720", t2: "#48362B", accent: "#F2B84B" },
+  { bg: "#2E1E17", t1: "#412B20", t2: "#573A2B", accent: "#FF7A45" },
+  { bg: "#221914", t1: "#32261E", t2: "#453529", accent: "#F2B84B" },
 ];
 
 function rand(n: number) {

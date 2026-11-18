@@ -12,7 +12,6 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^1.10.0",
     "@fontsource/dm-sans": "^5.3.0",
-    "@fontsource/fraunces": "^5.3.0",
     "@fontsource/syne": "^5.3.0",
     "better-sqlite3": "^13.2.0",
     "drizzle-orm": "^0.45.4",

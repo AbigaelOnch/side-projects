@@ -3,7 +3,10 @@ import { getEvent, priceLabel } from "@/lib/events";
 import { categoryLabel } from "@/lib/config";
 import { fmtDay, fmtLongDate, fmtTime, fmtTzName } from "@/lib/time";
 import { Poster } from "@/components/Poster";
+import type { Metadata } from "next";
 import { Report } from "@/components/Report";
+import { ShareEvent } from "@/components/ShareEvent";
+import { APP_NAME } from "@/lib/config";
 import { BackIcon, CalIcon, ClockIcon, PersonIcon, PinIcon, PlusIcon, TicketIcon } from "@/components/Icons";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +14,18 @@ export const dynamic = "force-dynamic";
 const PLATFORM: Record<string, string> = {
   eventbrite: "Eventbrite", luma: "Luma", partiful: "Partiful", posh: "Posh", meetup: "Meetup", instagram: "Instagram", tiktok: "TikTok",
 };
+
+// Link previews: a shared event shows its name, date and flyer in Messages, WhatsApp, Instagram and so on.
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const e = getEvent(Number((await params).id));
+  if (!e) return { title: APP_NAME };
+  const description = `${fmtLongDate(e.start_utc, e.tz)}, ${fmtTime(e.start_utc, e.tz)}${e.venue_name ? ` · ${e.venue_name}` : ""}`;
+  return {
+    title: `${e.title} · ${APP_NAME}`, description,
+    openGraph: { title: e.title, description, siteName: APP_NAME, type: "website", images: e.image_path ? [`/flyers/${e.image_path}`] : [] },
+    twitter: { card: e.image_path ? "summary_large_image" : "summary" },
+  };
+}
 
 export default async function EventPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -55,6 +70,7 @@ export default async function EventPage({ params }: { params: Promise<{ id: stri
               </a>
             ))}
             <a className="btn" href={`/e/${e.id}/ics`}><CalIcon /> Add to calendar</a>
+            <ShareEvent title={e.title} text={`${e.title} — ${fmtDay(e.start_utc, e.tz)}, ${fmtTime(e.start_utc, e.tz)}`} />
           </div>
 
           {e.nextDates.length > 1 && (

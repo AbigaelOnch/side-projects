@@ -88,7 +88,8 @@ org falls back to manual submissions (recorded per org).
 14. **C15 Singles: find the right room**: dating events carry a format (speed dating, singles mixer, activity-based, social) and optional audience labels (age range such as 20s, 30s or 40+; LGBTQ+ inclusive or specific; faith-based), all filterable. Any event in any category can also carry a **Singles-friendly** tag (set by the organiser on submit or by the admin), so singles find run clubs, tastings and happy hours without those leaving their main category.
 15. **C16 Going solo**: a **Good to go solo** badge for events with icebreakers, name tags or a host who introduces people, available in all categories. Optional details: dress code, structured or casual, and spots left (including by gender for speed dating) when the organiser shares them.
 16. **C17 Dating safety and comfort**: Dating events are **hidden by default**; one tap ("Show dating events") turns them on, remembered on that device. Dating event pages show a short safety note (meet in public, tell a friend, arrange your own ride). Every event page has **Report this event**, which goes to the admin queue (no login; optional reason). Dating events always need admin approval, even from trusted orgs.
-17. **C14 Version**: the footer and `/api/version` show the app version, so a stale running copy is obvious.
+17. **C18 Share an event with friends** (added 2026-11-17): every event page has a **Share** button. On phones it opens the phone's own share sheet (Messages, WhatsApp, Instagram and so on); elsewhere it copies the link. Shared links show a preview with the event's name, date and flyer. No login.
+18. **C14 Version**: the footer and `/api/version` show the app version, so a stale running copy is obvious.
 
 ## 6. Safety and approval rules
 
@@ -197,6 +198,10 @@ Format: Given / When / Then. These IDs link to the tests and the validation evid
 - **S-094** Given a trusted org submits a Dating event, then it still waits in the queue for approval.
 - **S-095** Given a visitor taps Report this event with a reason, then the admin queue shows the report with the event, and nothing changes publicly until the admin acts.
 - **S-096** Given a submitter pastes a speed-dating link, then the preview suggests Dating, a format and an age range if the page states them, and the submitter can change or clear them.
+
+### Sharing an event with friends
+- **S-110** On an event page, Share opens the device share sheet where available; otherwise it copies the event link and says "Link copied". If copying is blocked, the link is shown to copy by hand.
+- **S-111** An event page's link preview data (title, date and venue, flyer image) is present in the page for messaging apps to read.
 
 ### AI review
 - **S-100** Given AI review is on and Claude approves, when an event is shared, then it becomes public without the owner, marked as approved by AI with the reason.

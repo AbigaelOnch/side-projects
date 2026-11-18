@@ -7,6 +7,7 @@ import "./globals.css";
 import { APP_NAME, VERSION } from "@/lib/config";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.SITE_URL || "http://localhost:3000"),
   title: APP_NAME,
   description: "Events near you for the African diaspora: networking, career, culture, wellness and more.",
 };

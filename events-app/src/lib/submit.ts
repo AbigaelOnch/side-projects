@@ -164,12 +164,20 @@ export function submit(body: unknown, ip: string, now = new Date()): SubmitOutco
   const ipKey = hashIp(ip);
   if (rateLimited(ipKey)) return { status: "limited", message: "Too many submissions — try again later." };
 
+  return ingest(d, { ipKey, origin: "submit", now });
+}
+
+export type IngestData = z.infer<typeof SubmitSchema>;
+/** Put one event into the system: same link → already listed; same event → merged; otherwise a pending listing. */
+export function ingest(d: IngestData, o: { ipKey?: string | null; origin: "submit" | "org"; now?: Date; orgId?: number; cityId?: number | null }): SubmitOutcome {
+  const now = o.now ?? new Date();
+  const ipKey = o.ipKey ?? null;
   const source = d.source ? normaliseUrl(d.source) : null;
   if (source) {
     const dupe = existingBySource(source);
     if (dupe) return { status: "already", eventId: dupe.id, title: dupe.title, live: dupe.status === "approved" };
   }
-  const city = matchCity(d);
+  const city = matchCity(d) ?? (o.cityId ? listCities().find((c) => c.id === o.cityId) : undefined);
   const tz = city?.tz ?? DEFAULT_TZ;
   const start = toUtc(d.start_local, tz, d.utc_offset_min);
   const end = d.end_local ? toUtc(d.end_local, tz, d.utc_offset_min) : null;
@@ -190,7 +198,8 @@ export function submit(body: unknown, ip: string, now = new Date()): SubmitOutco
   }
   const id = db().transaction(() => {
     const eventId = insertEvent(row, "pending");
-    if (source) db().prepare("INSERT INTO event_sources (event_id, url, platform, origin) VALUES (?, ?, ?, 'submit')").run(eventId, source, platformOf(source));
+    if (source) db().prepare("INSERT INTO event_sources (event_id, url, platform, origin) VALUES (?, ?, ?, ?)").run(eventId, source, platformOf(source), o.origin);
+    if (o.orgId) db().prepare("UPDATE events SET org_id = ? WHERE id = ?").run(o.orgId, eventId);
     db().prepare("INSERT INTO submissions (event_id, submitter_email, new_city, source_url, raw_extract, ip_hash) VALUES (?, ?, ?, ?, ?, ?)")
       .run(eventId, d.email ?? null, newCity, source, JSON.stringify(d), ipKey);
     if (match) flagPair(match.event.id, eventId, match.score);

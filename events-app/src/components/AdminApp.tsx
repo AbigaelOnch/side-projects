@@ -5,6 +5,7 @@ import type { AiDecision } from "@/lib/review";
 import type { FlagItem, MergeItem } from "@/lib/dedupe";
 
 type City = { id: number; name: string; tz: string };
+type OrgRow = { id: number; name: string; page_url: string; trusted: boolean; city_name: string | null; last_checked: number | null; last_result: string | null; last_error: string | null };
 const CATS = [["networking", "Networking"], ["career", "Career & tech"], ["social", "Social & culture"], ["wellness", "Wellness"], ["dating", "Dating"]] as const;
 
 async function post(url: string, body: unknown): Promise<string | null> {
@@ -30,7 +31,7 @@ export function AdminLogin({ unset }: { unset: boolean }) {
   );
 }
 
-export function AdminApp(p: { flags: FlagItem[]; merges: MergeItem[]; ai: AiDecision[]; aiOn: boolean; queue: QueueItem[]; reports: ReportItem[]; cities: City[]; noLocation: { id: number; title: string; address: string | null }[]; claude: boolean; approvedCount: number }) {
+export function AdminApp(p: { orgs: OrgRow[]; flags: FlagItem[]; merges: MergeItem[]; ai: AiDecision[]; aiOn: boolean; queue: QueueItem[]; reports: ReportItem[]; cities: City[]; noLocation: { id: number; title: string; address: string | null }[]; claude: boolean; approvedCount: number }) {
   const [err, setErr] = useState<string | null>(null);
   const done = (m: string | null) => { if (m) setErr(m); else window.location.reload(); };
   return (
@@ -129,6 +130,26 @@ export function AdminApp(p: { flags: FlagItem[]; merges: MergeItem[]; ai: AiDeci
       )}
 
       <section>
+        <h2>Organisations you follow <span className="num">{p.orgs.length}</span></h2>
+        <p className="hint" style={{ marginBottom: 12 }}>The app looks at each page up to twice a day and brings in new events. Trusted organisations skip review (dating events never do).</p>
+        {p.orgs.map((o) => (
+          <div key={o.id} className="qcard" data-testid={`org-${o.id}`}>
+            <div>
+              <a href={o.page_url} target="_blank" rel="noopener noreferrer nofollow"><b>{o.name}</b></a>
+              <div className="meta">{o.city_name ? `${o.city_name} · ` : ""}{o.last_checked ? `Checked ${new Date(o.last_checked).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}` : "Not checked yet"}</div>
+              {o.last_error ? <div className="flag">{o.last_error}</div> : o.last_result ? <div className="meta">{o.last_result}</div> : null}
+            </div>
+            <div className="qactions">
+              <button type="button" className="btn" onClick={async () => done(await post("/api/admin/orgs", { action: "check", id: o.id }))}>Check now</button>
+              <button type="button" className="btn" aria-pressed={o.trusted} onClick={async () => done(await post("/api/admin/orgs", { action: "trust", id: o.id, trusted: !o.trusted }))}>{o.trusted ? "Trusted ✓" : "Trust"}</button>
+              <button type="button" className="btn danger" onClick={async () => done(await post("/api/admin/orgs", { action: "remove", id: o.id }))}>Unfollow</button>
+            </div>
+          </div>
+        ))}
+        <OrgForm cities={p.cities} done={done} />
+      </section>
+
+      <section>
         <h2>Cities</h2>
         <p className="hint">{p.cities.map((c) => c.name).join(" · ") || "None yet."}</p>
         <CityForm done={done} />
@@ -201,6 +222,29 @@ function CityForm({ done }: { done: (m: string | null) => void }) {
         </label>
       </div>
       <button type="submit" className="btn">Add city</button>
+    </form>
+  );
+}
+
+function OrgForm({ cities, done }: { cities: City[]; done: (m: string | null) => void }) {
+  const [url, setUrl] = useState("");
+  const [name, setName] = useState("");
+  const [city, setCity] = useState<number | "">(cities[0]?.id ?? "");
+  return (
+    <form className="sheet-body cityform" onSubmit={async (e) => { e.preventDefault(); done(await post("/api/admin/orgs", { action: "add", page_url: url, name, city_id: city || null })); }}>
+      <label>Organiser&apos;s page link
+        <input type="url" inputMode="url" value={url} onChange={(e) => setUrl(e.target.value)} required placeholder="Eventbrite organiser, Luma calendar, Meetup group or website events page" />
+      </label>
+      <div className="row2">
+        <label>Name <span className="opt">(optional)</span><input value={name} onChange={(e) => setName(e.target.value)} maxLength={80} /></label>
+        <label>City
+          <select value={city} onChange={(e) => setCity(e.target.value ? Number(e.target.value) : "")}>
+            <option value="">Any</option>
+            {cities.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </label>
+      </div>
+      <button type="submit" className="btn">Follow</button>
     </form>
   );
 }

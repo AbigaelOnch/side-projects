@@ -92,39 +92,72 @@ function findEvent(node: unknown): Obj | null {
   return findEvent(o["@graph"]);
 }
 
+function collectEvents(node: unknown, out: Obj[], depth = 0) {
+  if (!node || typeof node !== "object" || depth > 6) return;
+  if (Array.isArray(node)) { for (const n of node) collectEvents(n, out, depth + 1); return; }
+  const o = node as Obj;
+  const t = ([] as unknown[]).concat(o["@type"] ?? []).map(String);
+  if (t.some((x) => /Event$/.test(x))) { out.push(o); return; }
+  for (const k of ["@graph", "itemListElement", "item", "mainEntity", "event", "events", "subEvent"]) collectEvents(o[k], out, depth + 1);
+}
+
+function eventToDraft(e: Obj): (Partial<Draft> & { url?: string }) | null {
+  const start = splitIso(str(e.startDate));
+  if (!start) return null;
+  const end = splitIso(str(e.endDate));
+  const loc = first(e.location) as Obj | undefined;
+  const addr = loc?.address;
+  const addrText = typeof addr === "string" ? addr : addr && typeof addr === "object"
+    ? [str((addr as Obj).streetAddress), str((addr as Obj).addressLocality), str((addr as Obj).addressRegion)].filter(Boolean).join(", ")
+    : null;
+  const city = addr && typeof addr === "object" ? str((addr as Obj).addressLocality) : null;
+  const offers = first(e.offers) as Obj | undefined;
+  const price = offers ? Number(offers.lowPrice ?? offers.price) : NaN;
+  const img = first(e.image);
+  const online = String(e.eventAttendanceMode ?? "").includes("Online") || loc?.["@type"] === "VirtualLocation";
+  return {
+    title: str(e.name) ?? undefined,
+    start_local: start.local, utc_offset_min: start.offset, end_local: end?.local ?? null,
+    venue_name: loc && loc["@type"] !== "VirtualLocation" ? str(loc.name) : null,
+    address: addrText || null, city, online,
+    price_min: Number.isFinite(price) ? price : null,
+    image_url: typeof img === "string" ? img : str((img as Obj | undefined)?.url),
+    organiser: str((first(e.organizer) as Obj | undefined)?.name),
+    description: str(e.description)?.slice(0, 2000) ?? null,
+    url: str(e.url) ?? undefined,
+  };
+}
+
+/** Every schema.org Event in the page's JSON-LD (an organiser's page usually lists several). */
+export function allJsonLdEvents(html: string): (Partial<Draft> & { url?: string })[] {
+  const found: Obj[] = [];
+  for (const b of html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
+    try { collectEvents(JSON.parse(b[1].trim()), found); } catch { /* not JSON */ }
+  }
+  return found.map(eventToDraft).filter((d): d is NonNullable<typeof d> => !!d && !!d.title);
+}
+
 /** schema.org Event in the page's JSON-LD, if any. */
 export function fromJsonLd(html: string): Partial<Draft> | null {
-  const blocks = [...html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
-  for (const b of blocks) {
-    let data: unknown;
-    try { data = JSON.parse(b[1].trim()); } catch { continue; }
-    const e = findEvent(data);
-    if (!e) continue;
-    const start = splitIso(str(e.startDate));
-    if (!start) continue;
-    const end = splitIso(str(e.endDate));
-    const loc = first(e.location) as Obj | undefined;
-    const addr = loc?.address;
-    const addrText = typeof addr === "string" ? addr : addr && typeof addr === "object"
-      ? [str((addr as Obj).streetAddress), str((addr as Obj).addressLocality), str((addr as Obj).addressRegion)].filter(Boolean).join(", ")
-      : null;
-    const city = addr && typeof addr === "object" ? str((addr as Obj).addressLocality) : null;
-    const offers = first(e.offers) as Obj | undefined;
-    const price = offers ? Number(offers.lowPrice ?? offers.price) : NaN;
-    const img = first(e.image);
-    const online = String(e.eventAttendanceMode ?? "").includes("Online") || loc?.["@type"] === "VirtualLocation";
-    return {
-      title: str(e.name) ?? undefined,
-      start_local: start.local, utc_offset_min: start.offset, end_local: end?.local ?? null,
-      venue_name: loc && loc["@type"] !== "VirtualLocation" ? str(loc.name) : null,
-      address: addrText || null, city, online,
-      price_min: Number.isFinite(price) ? price : null,
-      image_url: typeof img === "string" ? img : str((img as Obj | undefined)?.url),
-      organiser: str((first(e.organizer) as Obj | undefined)?.name),
-      description: str(e.description)?.slice(0, 2000) ?? null,
-    };
+  const d = allJsonLdEvents(html)[0];
+  if (!d) return null;
+  const { url: _url, ...rest } = d;
+  return rest;
+}
+
+/** Links on an organiser's page that look like single event pages. */
+export function eventLinks(html: string, base: string): string[] {
+  const out = new Set<string>();
+  for (const m of html.matchAll(/href=["']([^"'#]+)["']/gi)) {
+    let u: URL;
+    try { u = new URL(decode(m[1]), base); } catch { continue; }
+    if (u.protocol !== "https:" && u.protocol !== "http:") continue;
+    const h = u.hostname.replace(/^www\./, ""), p = u.pathname;
+    const isEvent = (h.includes("eventbrite.") && /^\/e\/[^/]+-\d+\/?$/.test(p)) || (h.endsWith("meetup.com") && /\/events\/\d+\/?$/.test(p)) ||
+      (h.endsWith("partiful.com") && /^\/e\/[\w-]+\/?$/.test(p)) || (h.endsWith("posh.vip") && /^\/e\/[\w-]+\/?$/.test(p));
+    if (isEvent) out.add(normaliseUrl(u.toString()));
   }
-  return null;
+  return [...out];
 }
 
 /** Simple category guess for pages read without Claude. */

@@ -109,6 +109,20 @@ const MIGRATIONS: string[] = [
   ALTER TABLE events ADD COLUMN age_min INTEGER;
   ALTER TABLE events ADD COLUMN age_max INTEGER;
   `,
+  `
+  CREATE TABLE orgs (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    page_url TEXT NOT NULL UNIQUE,
+    platform TEXT,
+    trusted INTEGER NOT NULL DEFAULT 0,
+    city_id INTEGER REFERENCES cities(id),
+    last_checked INTEGER,
+    last_result TEXT,
+    last_error TEXT
+  );
+  ALTER TABLE events ADD COLUMN org_id INTEGER;
+  `,
 ];
 
 type Param = string | number | bigint | null | Uint8Array;

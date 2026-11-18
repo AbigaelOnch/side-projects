@@ -8,12 +8,14 @@ import { FetchRefused, safeFetch } from "./safefetch";
 import { BadImage, fetchImage, saveImage } from "./images";
 import { listCities, type City } from "./events";
 import { zonedToUtc } from "./time";
+import { absorbSubmission, findDuplicate, flagPair } from "./dedupe";
+import { parseAge } from "./age";
 
 export const DEFAULT_TZ = process.env.DEFAULT_TZ || "America/Los_Angeles";
 
 export type ReadResult =
   | { status: "ok"; draft: Partial<Draft>; image: string | null; source: string | null; platform: string | null; note?: string }
-  | { status: "already"; eventId: number; title: string }
+  | { status: "already"; eventId: number; title: string; live?: boolean }
   | { status: "need_screenshot"; message: string; source: string }
   | { status: "not_event"; message: string }
   | { status: "unreachable"; message: string }
@@ -36,7 +38,7 @@ export async function readLink(input: string): Promise<ReadResult> {
   const url = normaliseUrl(/^https?:\/\//i.test(found) ? found : `https://${found}`);
   const platform = platformOf(url);
   const dupe = existingBySource(url);
-  if (dupe) return { status: "already", eventId: dupe.id, title: dupe.title };
+  if (dupe) return { status: "already", eventId: dupe.id, title: dupe.title, live: dupe.status === "approved" };
 
   let html: string;
   try {
@@ -144,7 +146,7 @@ export function rateLimited(key: string): boolean {
 
 export type SubmitOutcome =
   | { status: "queued"; id: number; newCity: string | null }
-  | { status: "already"; eventId: number; title: string }
+  | { status: "already"; eventId: number; title: string; live?: boolean }
   | { status: "invalid"; message: string; fields?: string[] }
   | { status: "past"; message: string }
   | { status: "limited"; message: string }
@@ -165,7 +167,7 @@ export function submit(body: unknown, ip: string, now = new Date()): SubmitOutco
   const source = d.source ? normaliseUrl(d.source) : null;
   if (source) {
     const dupe = existingBySource(source);
-    if (dupe) return { status: "already", eventId: dupe.id, title: dupe.title };
+    if (dupe) return { status: "already", eventId: dupe.id, title: dupe.title, live: dupe.status === "approved" };
   }
   const city = matchCity(d);
   const tz = city?.tz ?? DEFAULT_TZ;
@@ -174,21 +176,52 @@ export function submit(body: unknown, ip: string, now = new Date()): SubmitOutco
   if ((end ?? new Date(start.getTime() + 2 * 3600_000)) < now) return { status: "past", message: "That event has already happened." };
 
   const newCity = city ? null : (d.city || d.address || "").trim() || null;
+  const row = {
+    title: d.title, start_utc: start.toISOString(), end_utc: end?.toISOString() ?? null, tz, venue_name: d.venue_name ?? null, address: d.address ?? null,
+    city_id: city?.id ?? null, online: d.online ? 1 : 0, price_min: d.price_min ?? null, price_text: d.price_text ?? null, image_path: d.image ?? null,
+    organiser: d.organiser ?? null, description: d.description ?? null, category: d.category,
+    singles_friendly: d.singles_friendly ? 1 : 0, go_solo: d.go_solo ? 1 : 0, dating_format: d.dating_format ?? null, age_range: d.age_range ?? null,
+  };
+  // The same event shared from another site: keep one listing (S-031). Close calls are flagged for the owner (S-032).
+  const match = findDuplicate({ title: row.title, start, venue_name: row.venue_name, address: row.address, online: !!row.online, city_id: row.city_id });
+  if (match?.kind === "same") {
+    absorbSubmission(match.event.id, { ...row, submitter_email: d.email ?? null, new_city: newCity }, source, source ? platformOf(source) : null);
+    return { status: "already", eventId: match.event.id, title: match.event.title, live: match.event.status === "approved" };
+  }
   const id = db().transaction(() => {
-    const r = db().prepare(`INSERT INTO events (title, start_utc, end_utc, tz, venue_name, address, city_id, online, price_min, price_text,
-        image_path, organiser, description, category, singles_friendly, go_solo, dating_format, age_range, status)
-      VALUES (@title, @start, @end, @tz, @venue, @address, @city, @online, @price, @price_text, @image, @organiser, @description, @category,
-        @singles, @solo, @dating_format, @age_range, 'pending')`).run({
-      title: d.title, start: start.toISOString(), end: end?.toISOString() ?? null, tz, venue: d.venue_name ?? null, address: d.address ?? null,
-      city: city?.id ?? null, online: d.online ? 1 : 0, price: d.price_min ?? null, price_text: d.price_text ?? null, image: d.image ?? null,
-      organiser: d.organiser ?? null, description: d.description ?? null, category: d.category,
-      singles: d.singles_friendly ? 1 : 0, solo: d.go_solo ? 1 : 0, dating_format: d.dating_format ?? null, age_range: d.age_range ?? null,
-    });
-    const eventId = Number(r.lastInsertRowid);
+    const eventId = insertEvent(row, "pending");
     if (source) db().prepare("INSERT INTO event_sources (event_id, url, platform, origin) VALUES (?, ?, ?, 'submit')").run(eventId, source, platformOf(source));
     db().prepare("INSERT INTO submissions (event_id, submitter_email, new_city, source_url, raw_extract, ip_hash) VALUES (?, ?, ?, ?, ?, ?)")
       .run(eventId, d.email ?? null, newCity, source, JSON.stringify(d), ipKey);
+    if (match) flagPair(match.event.id, eventId, match.score);
     return eventId;
   })();
   return { status: "queued", id, newCity };
+}
+
+export type EventInsert = {
+  title: string; start_utc: string; end_utc: string | null; tz: string; venue_name: string | null; address: string | null; city_id: number | null;
+  online: number; price_min: number | null; price_text: string | null; image_path: string | null; organiser: string | null; description: string | null;
+  category: string; singles_friendly: number; go_solo: number; dating_format: string | null; age_range: string | null;
+};
+export function insertEvent(e: EventInsert, status: "pending" | "approved"): number {
+  const age = parseAge(e.age_range);
+  return db().prepare(`INSERT INTO events (title, start_utc, end_utc, tz, venue_name, address, city_id, online, price_min, price_text,
+      image_path, organiser, description, category, singles_friendly, go_solo, dating_format, age_range, age_min, age_max, status)
+    VALUES (@title, @start_utc, @end_utc, @tz, @venue_name, @address, @city_id, @online, @price_min, @price_text, @image_path, @organiser, @description,
+      @category, @singles_friendly, @go_solo, @dating_format, @age_range, @age_min, @age_max, @status)`).run({
+    title: e.title, start_utc: e.start_utc, end_utc: e.end_utc, tz: e.tz, venue_name: e.venue_name, address: e.address, city_id: e.city_id, online: e.online,
+    price_min: e.price_min, price_text: e.price_text, image_path: e.image_path, organiser: e.organiser, description: e.description, category: e.category,
+    singles_friendly: e.singles_friendly, go_solo: e.go_solo, dating_format: e.dating_format, age_range: e.age_range,
+    age_min: age?.min ?? null, age_max: age?.max ?? null, status,
+  }).lastInsertRowid;
+}
+
+/** Rebuild a pending listing from a merged submission (used by Unmerge). */
+export function recreateFromMerge(raw: Record<string, unknown>): number | null {
+  if (typeof raw.title !== "string" || typeof raw.start_utc !== "string") return null;
+  const id = insertEvent(raw as unknown as EventInsert, "pending");
+  db().prepare("INSERT INTO submissions (event_id, submitter_email, new_city, raw_extract) VALUES (?, ?, ?, ?)")
+    .run(id, (raw.submitter_email as string) ?? null, (raw.new_city as string) ?? null, JSON.stringify(raw));
+  return id;
 }

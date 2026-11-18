@@ -16,8 +16,9 @@ After an update, close the black window and start it again. The version in the p
 
 ## Status
 
-Slice 1 of 8 built: city feed with Tonight / This weekend / This week / This month, category and Free filters, dating hidden by
-default, recurring events shown once, event pages, Add to calendar. Next: Near me, then one-step sharing.
+Built: home feed (featured row, day-by-day list, filters), near me, event pages (tickets link, calendar, share, report), one-step sharing by
+link or flyer, AI review with owner override, admin page, duplicate merging, recurring series, singles filters, Add to Home Screen.
+Not built yet: followed organisations (automatic checking of organisers' pages), hosting. See `SPEC.md`.
 
 ## Developer
 

@@ -14,7 +14,10 @@ const ev = await import("@/lib/events");
 
 const NOW = new Date("2026-11-18T03:00:00Z");
 const base = { title: "Reviewed", start_local: "2026-11-20T18:30", category: "networking", address: "2101 Broadway, Oakland" };
-const queue = (o: object = {}) => (sub.submit({ ...base, ...o }, Math.random().toString(), NOW) as { id: number }).id;
+let n = 0;
+const day = (i: number) => new Date(Date.UTC(2026, 10, 19 + (i % 28), 18, 30)).toISOString().slice(0, 16);
+// each test event gets its own day so the duplicate check doesn't fold them together
+const queue = (o: object = {}) => (sub.submit({ ...base, start_local: day(n++), ...o }, Math.random().toString(), NOW) as { id: number }).id;
 const row = (id: number) => db().prepare("SELECT status, auto_approved, review_by, review_note FROM events WHERE id = ?").get(id) as Record<string, unknown>;
 let calls = 0;
 const decide = (decision: "approve" | "hold" | "reject", reason = "ok") => claude.setReviewForTests(async () => { calls++; return { decision, reason }; });

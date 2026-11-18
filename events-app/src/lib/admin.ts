@@ -5,6 +5,8 @@ import { db } from "./db";
 import { CATEGORY_IDS } from "./config";
 import { partsIn } from "./time";
 import { toUtc } from "./submit";
+import { linkSeries } from "./dedupe";
+import { parseAge } from "./age";
 
 const sha = (s: string) => crypto.createHash("sha256").update(s).digest("hex");
 const LOCK_WINDOW = 15 * 60 * 1000;
@@ -70,6 +72,7 @@ export function pending(): QueueItem[] {
 
 export function approve(id: number): boolean {
   const r = db().prepare("UPDATE events SET status = 'approved', review_by = 'admin', approved_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND status = 'pending'").run(id);
+  if (r.changes === 1) linkSeries(id);
   return r.changes === 1;
 }
 

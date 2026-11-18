@@ -6,6 +6,7 @@ import { ClaudeUnavailable, reviewWithClaude, type ReviewDecision } from "./clau
 import { geocodeEvent } from "./geocode";
 import { priceLabel } from "./events";
 import { fmtLongDate, fmtTime } from "./time";
+import { flaggedWith, linkSeries } from "./dedupe";
 
 export const aiReviewOn = () => (process.env.AI_REVIEW ?? "on").toLowerCase() !== "off";
 
@@ -24,6 +25,8 @@ export async function reviewEvent(id: number): Promise<ReviewDecision["decision"
   const e = db().prepare("SELECT * FROM events WHERE id = ? AND status = 'pending'").get(id) as Row | undefined;
   if (!e) return "skipped";
   if (e.category === "dating") { note(id, "ai", "Dating events are always checked by you."); return "hold"; }
+  const twin = flaggedWith(id);
+  if (twin) { note(id, "ai", `Possible duplicate of "${twin}". Merge or keep both.`); return "hold"; }
   if (!e.city_id && !e.online) { note(id, "ai", "It's in a city you don't cover yet."); return "hold"; }
   const source = (db().prepare("SELECT url FROM event_sources WHERE event_id = ? ORDER BY id LIMIT 1").get(id) as { url: string } | undefined)?.url ?? null;
   let d: ReviewDecision;
@@ -40,7 +43,7 @@ export async function reviewEvent(id: number): Promise<ReviewDecision["decision"
   }
   if (d.decision === "approve") {
     const r = db().prepare(`UPDATE events SET status = 'approved', auto_approved = 1, approved_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE id = ? AND status = 'pending'`).run(id);
-    if (r.changes) { note(id, "ai", d.reason); void geocodeEvent(id).catch(() => null); }
+    if (r.changes) { note(id, "ai", d.reason); linkSeries(id); void geocodeEvent(id).catch(() => null); }
   } else if (d.decision === "reject") {
     const r = db().prepare("UPDATE events SET status = 'rejected', reject_reason = ? WHERE id = ? AND status = 'pending'").run(d.reason.slice(0, 300), id);
     if (r.changes) note(id, "ai", d.reason);

@@ -2,6 +2,7 @@ import { db } from "./db";
 import { CATEGORY_IDS, PAGE_SIZE, type TabId } from "./config";
 import { tabRange } from "./time";
 import { boundingBox, milesBetween } from "./geo";
+import { AGE_BUCKETS } from "./age";
 
 export type City = { id: number; slug: string; name: string; tz: string; lat: number | null; lng: number | null; radius_mi: number };
 
@@ -34,6 +35,10 @@ export type FeedQuery = {
   cats: string[];
   free: boolean;
   dating: boolean;
+  singles?: boolean;
+  solo?: boolean;
+  formats?: string[];
+  ages?: string[];
   cursor?: string | null; // "<start_utc>|<id>"
   now?: Date;
   limit?: number;
@@ -72,6 +77,14 @@ export function listEvents(q: FeedQuery): { events: EventRow[]; next: string | n
   }
   if (q.cats.length && !cats.length) return { events: [], next: null }; // only dating picked, dating hidden
   if (q.free) where.push("e.price_min = 0");
+  if (q.singles) where.push("(e.singles_friendly = 1 OR e.category = 'dating')");
+  if (q.solo) where.push("e.go_solo = 1");
+  const formats = (q.formats ?? []).filter((f) => ["speed", "mixer", "activity", "social"].includes(f));
+  if (formats.length) { where.push(`e.dating_format IN (${formats.map((_, i) => `@f${i}`).join(",")})`); formats.forEach((f, i) => (params[`f${i}`] = f)); }
+  const ages = (q.ages ?? []).filter((a) => a in AGE_BUCKETS);
+  if (ages.length) where.push("(" + ages.map((a) => `(e.age_min <= ${AGE_BUCKETS[a][1]} AND e.age_max >= ${AGE_BUCKETS[a][0]})`).join(" OR ") + ")");
+  // A recurring series shows once, at its next date (C8).
+  where.push(`(e.series_id IS NULL OR e.start_utc = (SELECT MIN(x.start_utc) FROM events x WHERE x.series_id = e.series_id AND x.status = 'approved' AND COALESCE(x.end_utc, x.start_utc) > @now))`);
   if (q.cursor) {
     const [cs, ci] = q.cursor.split("|");
     where.push("(e.start_utc > @cs OR (e.start_utc = @cs AND e.id > @ci))");
@@ -90,16 +103,7 @@ export function listEvents(q: FeedQuery): { events: EventRow[]; next: string | n
       .filter((r) => r.distance_mi <= c.radius)
       .slice(0, limit + 1);
   }
-  // A recurring series shows once: its next date (C8).
-  const seen = new Set<number>();
-  const out: EventRow[] = [];
-  for (const r of rows.slice(0, limit)) {
-    if (r.series_id && !q.cursor) {
-      if (seen.has(r.series_id)) continue;
-      seen.add(r.series_id);
-    }
-    out.push(r);
-  }
+  const out = rows.slice(0, limit);
   const last = rows.length > limit ? rows[limit - 1] : null;
   return { events: out, next: last ? `${last.start_utc}|${last.id}` : null };
 }

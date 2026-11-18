@@ -2,6 +2,7 @@
 import { useState } from "react";
 import type { QueueItem, ReportItem } from "@/lib/admin";
 import type { AiDecision } from "@/lib/review";
+import type { FlagItem, MergeItem } from "@/lib/dedupe";
 
 type City = { id: number; name: string; tz: string };
 const CATS = [["networking", "Networking"], ["career", "Career & tech"], ["social", "Social & culture"], ["wellness", "Wellness"], ["dating", "Dating"]] as const;
@@ -29,7 +30,7 @@ export function AdminLogin({ unset }: { unset: boolean }) {
   );
 }
 
-export function AdminApp(p: { ai: AiDecision[]; aiOn: boolean; queue: QueueItem[]; reports: ReportItem[]; cities: City[]; noLocation: { id: number; title: string; address: string | null }[]; claude: boolean; approvedCount: number }) {
+export function AdminApp(p: { flags: FlagItem[]; merges: MergeItem[]; ai: AiDecision[]; aiOn: boolean; queue: QueueItem[]; reports: ReportItem[]; cities: City[]; noLocation: { id: number; title: string; address: string | null }[]; claude: boolean; approvedCount: number }) {
   const [err, setErr] = useState<string | null>(null);
   const done = (m: string | null) => { if (m) setErr(m); else window.location.reload(); };
   return (
@@ -54,6 +55,38 @@ export function AdminApp(p: { ai: AiDecision[]; aiOn: boolean; queue: QueueItem[
         {p.queue.length === 0 && <p className="hint">Nothing is waiting.</p>}
         {p.queue.map((q) => <QueueCard key={q.id} q={q} cities={p.cities} done={done} />)}
       </section>
+
+      {p.flags.length > 0 && (
+        <section>
+          <h2>Possible duplicates <span className="num">{p.flags.length}</span></h2>
+          {p.flags.map((f) => {
+            const when = (iso: string) => new Intl.DateTimeFormat("en-US", { timeZone: f.tz, weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(iso));
+            return (
+              <div key={f.id} className="qcard" data-testid={`flag-${f.id}`}>
+                <div><b>{f.a_title}</b><div className="meta">{when(f.a_when)} · {f.a_venue || "No venue"} · {f.a_status === "approved" ? "Live" : "Waiting"}</div></div>
+                <div><b>{f.b_title}</b><div className="meta">{when(f.b_when)} · {f.b_venue || "No venue"} · {f.b_status === "approved" ? "Live" : "Waiting"}</div></div>
+                <div className="qactions">
+                  <button type="button" className="btn pink" onClick={async () => done(await post("/api/admin/dupes", { action: "merge", keepId: f.a, dropId: f.b }))}>Same event: merge</button>
+                  <button type="button" className="btn" onClick={async () => done(await post("/api/admin/dupes", { action: "keep", flagId: f.id }))}>Keep both</button>
+                </div>
+              </div>
+            );
+          })}
+        </section>
+      )}
+
+      {p.merges.length > 0 && (
+        <section>
+          <h2>Recently merged</h2>
+          <p className="hint" style={{ marginBottom: 12 }}>The same event shared more than once is kept as one listing. Undo here if a merge was wrong.</p>
+          {p.merges.map((m) => (
+            <div key={m.id} className="qcard" data-testid={`merge-${m.id}`}>
+              <div><b>{m.title}</b><div className="meta">Another share was folded into this listing</div></div>
+              <div className="qactions"><button type="button" className="btn" onClick={async () => done(await post("/api/admin/dupes", { action: "unmerge", mergeId: m.id }))}>Unmerge</button></div>
+            </div>
+          ))}
+        </section>
+      )}
 
       <section>
         <h2>Reports <span className="num">{p.reports.length}</span></h2>

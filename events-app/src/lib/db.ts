@@ -1,6 +1,7 @@
 import type { DatabaseSync, StatementSync } from "node:sqlite";
 import fs from "node:fs";
 import path from "node:path";
+import { parseAge } from "./age";
 
 // One SQLite file on this computer, using the SQLite built into Node.js (no native add-on to compile).
 // Versioned migrations below; the same tables move to Postgres when hosted.
@@ -93,6 +94,21 @@ const MIGRATIONS: string[] = [
   ALTER TABLE events ADD COLUMN review_note TEXT;
   ALTER TABLE events ADD COLUMN reviewed_at TEXT;
   `,
+  `
+  CREATE TABLE dupe_flags (id INTEGER PRIMARY KEY, event_a INTEGER NOT NULL, event_b INTEGER NOT NULL, score REAL, resolved INTEGER NOT NULL DEFAULT 0);
+  CREATE TABLE merges (
+    id INTEGER PRIMARY KEY,
+    event_id INTEGER NOT NULL,
+    dropped_event_id INTEGER,
+    prev_status TEXT,
+    source_urls TEXT NOT NULL DEFAULT '[]',
+    raw_extract TEXT,
+    undone INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  );
+  ALTER TABLE events ADD COLUMN age_min INTEGER;
+  ALTER TABLE events ADD COLUMN age_max INTEGER;
+  `,
 ];
 
 type Param = string | number | bigint | null | Uint8Array;
@@ -144,6 +160,11 @@ function open(): Db {
       raw.exec(MIGRATIONS[v]);
       raw.exec(`PRAGMA user_version = ${v + 1}`);
     })();
+  }
+  // keep the numeric age range in step with the text one (used by the age filter)
+  for (const r of raw.prepare("SELECT id, age_range FROM events WHERE age_range IS NOT NULL AND age_min IS NULL").all() as { id: number; age_range: string }[]) {
+    const a = parseAge(r.age_range);
+    if (a) raw.prepare("UPDATE events SET age_min = ?, age_max = ? WHERE id = ?").run(a.min, a.max, r.id);
   }
   return db;
 }

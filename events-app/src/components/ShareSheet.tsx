@@ -9,7 +9,7 @@ type Draft = {
 };
 type Read =
   | { status: "ok"; draft: Draft; image: string | null; source: string | null; platform: string | null; note?: string }
-  | { status: "already"; eventId: number; title: string }
+  | { status: "already"; eventId: number; title: string; live?: boolean }
   | { status: "need_screenshot" | "not_event" | "unreachable" | "error"; message: string; source?: string };
 
 const CATS = [
@@ -18,7 +18,7 @@ const CATS = [
 const FORMATS = [["speed", "Speed dating"], ["mixer", "Singles mixer"], ["activity", "Activity"], ["social", "Social"]] as const;
 
 type Step = { s: "start" } | { s: "reading"; what: string } | { s: "problem"; message: string; source?: string }
-  | { s: "already"; eventId: number; title: string } | { s: "form" } | { s: "sending" }
+  | { s: "already"; eventId: number; title: string; live?: boolean } | { s: "form" } | { s: "sending" }
   | { s: "done"; newCity: string | null };
 
 export function ShareSheet({ initial }: { initial: string }) {
@@ -45,7 +45,7 @@ export function ShareSheet({ initial }: { initial: string }) {
     if (r.status === "ok") {
       setD(r.draft || {}); setImage(r.image); setSource(r.source ?? source); setNote(r.note ?? null);
       setMissing(required(r.draft || {})); setStep({ s: "form" });
-    } else if (r.status === "already") setStep({ s: "already", eventId: r.eventId, title: r.title });
+    } else if (r.status === "already") setStep({ s: "already", eventId: r.eventId, title: r.title, live: r.live });
     else setStep({ s: "problem", message: r.message, source: r.source });
     if ("source" in r && r.source) setSource(r.source);
   }
@@ -94,7 +94,7 @@ export function ShareSheet({ initial }: { initial: string }) {
       });
       const j = await r.json();
       if (j.status === "queued") setStep({ s: "done", newCity: j.newCity });
-      else if (j.status === "already") setStep({ s: "already", eventId: j.eventId, title: j.title });
+      else if (j.status === "already") setStep({ s: "already", eventId: j.eventId, title: j.title, live: j.live });
       else { setNote(j.message); setMissing(j.fields ?? []); setStep({ s: "form" }); }
     } catch {
       setNote("You seem to be offline. Your details are still here; try again in a moment.");
@@ -128,9 +128,9 @@ export function ShareSheet({ initial }: { initial: string }) {
   if (step.s === "already") return (
     <div className="sheet-body" role="status">
       <h2>Already listed</h2>
-      <p className="lede">“{step.title}” is already on Afro Social, so there&apos;s nothing to add.</p>
+      <p className="lede">“{step.title}” {step.live === false ? "has already been shared and is being checked" : "is already on Afro Social"}, so there&apos;s nothing more to add. Thanks for sending it.</p>
       <div className="stack">
-        <a className="btn pink wide" href={`/e/${step.eventId}`}>See the event</a>
+        {step.live !== false && <a className="btn pink wide" href={`/e/${step.eventId}`}>See the event</a>}
         <button type="button" className="btn wide" onClick={reset}>Share a different event</button>
       </div>
     </div>

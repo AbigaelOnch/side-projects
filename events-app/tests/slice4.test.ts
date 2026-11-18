@@ -14,8 +14,11 @@ const { geocodeEvent } = await import("@/lib/geocode");
 const TZ = "America/Los_Angeles";
 const NOW = new Date("2026-11-18T03:00:00Z");
 const base = { title: "Queue me", start_local: "2026-11-20T18:30", category: "networking", address: "2101 Broadway, Oakland" };
-const feed = () => ev.listEvents({ city: ev.cityBySlug("oakland")!, tab: "month", cats: [], free: false, dating: true, now: NOW }).events.map((e) => e.title);
-const queue = (o: object = {}, ip = Math.random().toString()) => (sub.submit({ ...base, ...o }, ip, NOW) as { id: number }).id;
+const feed = () => ev.listEvents({ city: ev.cityBySlug("oakland")!, limit: 200, tab: "month", cats: [], free: false, dating: true, now: NOW }).events.map((e) => e.title);
+let n = 0;
+const day = (i: number) => new Date(Date.UTC(2026, 10, 19 + (i % 28), 18, 30)).toISOString().slice(0, 16);
+// each test event gets its own day so the duplicate check doesn't fold them together
+const queue = (o: object = {}, ip = Math.random().toString()) => (sub.submit({ ...base, start_local: day(n++), ...o }, ip, NOW) as { id: number }).id;
 
 beforeAll(() => { db().exec(`INSERT INTO cities (id, slug, name, tz) VALUES (1, 'oakland', 'Oakland', '${TZ}'), (2, 'nyc', 'New York', 'America/New_York')`); });
 
@@ -52,7 +55,7 @@ describe("S-040/S-041 review queue", () => {
     const r = queue({ title: "Reject me" });
     expect(feed()).not.toContain("Approve me");
     const q = admin.pending();
-    expect(q.find((x) => x.id === a)).toMatchObject({ submitter_email: "a@example.com", source_url: "https://lu.ma/approve-me", start_local: "2026-11-20T18:30" });
+    expect(q.find((x) => x.id === a)).toMatchObject({ submitter_email: "a@example.com", source_url: "https://lu.ma/approve-me", start_local: "2026-11-19T18:30" });
     expect(admin.approve(a)).toBe(true);
     expect(admin.approve(a)).toBe(false);
     expect(admin.reject(r, "spam")).toBe(true);

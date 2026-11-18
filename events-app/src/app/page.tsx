@@ -26,11 +26,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<Fee
   if (!f.city || sp.pick === "1") return <CityPicker />;
 
   const city = f.city;
-  const base = { city: city.slug, near: f.near, tab: f.tab, cats: f.cats, free: f.free, dating: f.dating };
+  const base = { city: city.slug, near: f.near, tab: f.tab, cats: f.cats, free: f.free, dating: f.dating, singles: f.singles, solo: f.solo, formats: f.formats, ages: f.ages };
   const href = (o: Partial<typeof base>) => `/?${feedQuery({ ...base, ...o })}`;
   const where = f.near ? `within ${f.near.radius} miles` : `in ${city.name}`;
   const tabLabel = TABS.find((t) => t.id === f.tab)!.label.toLowerCase();
-  const filtered = f.cats.length > 0 || f.free;
+  const filtered = f.cats.length > 0 || f.free || f.singles || f.solo || f.formats.length > 0 || f.ages.length > 0;
   const shelf = filtered ? [] : featured(f);
 
   return (
@@ -64,7 +64,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<Fee
               <a key={t.id} className="tab" href={href({ tab: t.id })} aria-current={t.id === f.tab ? "page" : undefined}>{t.label}</a>
             ))}
           </nav>
-          <FilterSheet key={href({})} cats={f.cats} free={f.free} dating={f.dating} radius={f.near?.radius ?? null} />
+          <FilterSheet key={href({})} cats={f.cats} free={f.free} dating={f.dating} radius={f.near?.radius ?? null}
+            singles={f.singles} solo={f.solo} formats={f.formats} ages={f.ages} />
         </div>
 
         {f.events.length === 0 ? (

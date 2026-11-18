@@ -24,6 +24,10 @@ if not exist node_modules (
   if errorlevel 1 ( echo Install failed. & pause & exit /b 1 )
 )
 if not exist .env.local copy .env.example .env.local >nul
+if not exist data\app.db (
+  echo Adding sample events so there is something to look at...
+  call npm run seed
+)
 
 echo Starting Afro Social at http://localhost:3000
 echo Keep this window open while you use it. Close it to stop the app.

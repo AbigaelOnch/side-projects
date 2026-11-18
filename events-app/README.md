@@ -21,6 +21,10 @@ link or flyer, AI review with owner override, admin page, duplicate merging, rec
 followed organisations (checked up to twice a day). Not built yet: hosting. See `SPEC.md` for the full spec and `VALIDATION.md` for what has
 and hasn't been proven.
 
+## Picking this up again
+
+Read `NEXT.md`: it lists the remaining work in order and the practical notes for resuming.
+
 ## Developer
 
 ```

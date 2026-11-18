@@ -1,0 +1,16 @@
+{"v":3,"createdOnFiles":{"v":1,"at":"2026-11-18T03:13:15Z"},"title":"Events app: 3 visual directions","launch":{"view":"canvas"},"pages":[],
+"boards":{
+"Main.dc.html":{"x":0,"y":300,"w":390,"h":844,"title":"A · Block party — home"},
+"A-submit.dc.html":{"x":470,"y":300,"w":390,"h":844,"title":"A · Block party — share an event"},
+"B-home.dc.html":{"x":0,"y":1500,"w":390,"h":844,"title":"B · After hours — home"},
+"B-submit.dc.html":{"x":470,"y":1500,"w":390,"h":844,"title":"B · After hours — share an event"},
+"C-home.dc.html":{"x":0,"y":2700,"w":390,"h":844,"title":"C · Community calendar — home"},
+"C-submit.dc.html":{"x":470,"y":2700,"w":390,"h":844,"title":"C · Community calendar — share an event"}
+},
+"order":["Main.dc.html","A-submit.dc.html","B-home.dc.html","B-submit.dc.html","C-home.dc.html","C-submit.dc.html"],
+"notes":{
+"tA":{"x":0,"y":40,"text":"A · Block party","kind":"title1","maxW":860},
+"tB":{"x":0,"y":1240,"text":"B · After hours","kind":"title1","maxW":860},
+"tC":{"x":0,"y":2440,"text":"C · Community calendar","kind":"title1","maxW":860}
+},
+"designSystems":[]}

@@ -15,3 +15,4 @@ Start a project by running `claude` here and asking: "Use the software-factory s
 ## Projects
 
 - [`ai-assistant/`](ai-assistant/): a personal assistant that checks email, tracks budget, workouts and appointments, and acts only with your approval. Runs locally on Windows or Mac.
+- [`events-app/`](events-app/): **Afro Social**, a website of local events for the African diaspora. Near-me feed, one-step sharing by link or flyer, AI review, duplicate merging, followed organisers. Prototype, runs locally. Built with the software-factory skills; see its `SPEC.md` and `VALIDATION.md`.

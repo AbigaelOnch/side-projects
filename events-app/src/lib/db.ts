@@ -59,6 +59,20 @@ const MIGRATIONS: string[] = [
   );
   CREATE INDEX sources_event ON event_sources(event_id);
   `,
+  `
+  CREATE TABLE submissions (
+    id INTEGER PRIMARY KEY,
+    event_id INTEGER NOT NULL REFERENCES events(id),
+    submitter_email TEXT,
+    new_city TEXT,
+    source_url TEXT,
+    raw_extract TEXT,
+    ip_hash TEXT,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  );
+  CREATE TABLE rate_hits (key TEXT NOT NULL, at INTEGER NOT NULL);
+  CREATE INDEX rate_hits_key ON rate_hits(key, at);
+  `,
 ];
 
 function open(): Database.Database {

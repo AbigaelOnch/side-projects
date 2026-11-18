@@ -9,16 +9,16 @@ Edit this file. The assistant reads it on every run.
 
 ## People who matter most
 - (e.g. my manager Jane Doe <jane@company.com>: always flag her emails)
-- (e.g. family: flag iMessages from Mom)
+- (e.g. family: flag emails from Mom)
 
 ## What to do automatically
-- Summarize anything new across email, LinkedIn, notes and messages.
+- Summarize anything new across email and LinkedIn.
 - Pull action items into the task list, with a due date when one is stated.
 - Draft replies for emails that clearly need one (drafts are saved, not sent).
-- Add a dated "Daily brief" note in Apple Notes.
+- Check my budget, eating, workout and appointment alerts and include them in the brief.
 
 ## What to always ask me about first
-- Sending any email or iMessage.
+- Sending any email.
 - Anything involving money, contracts, or saying yes to a meeting.
 
 ## What to ignore
